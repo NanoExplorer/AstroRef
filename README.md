@@ -17,3 +17,4 @@ The hard part is getting gi / PyGObject installed. I can't help you with that be
 Make sure to set up the python ads library by making the file `~/.ads/dev_key' and pasting your ADS api key in there.
 
 I think that's it for installation. Let me know if that doesn't cover everything.
+
