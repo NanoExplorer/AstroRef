@@ -9,7 +9,8 @@ import bibtexparser
 from libraries import LibrariesQuery, LibraryQuery
 from ads import ExportQuery
 from bigquery import BigQuery
-import webbrowser
+#import webbrowser
+#import threading
 
 
 DOI_PROVIDER = "https://doi-org.proxy.library.cornell.edu/"
@@ -25,11 +26,14 @@ MONTHS = {'jan':1,
           'sep':9,
           'oct':10,
           'nov':11,
-          'dec':12
+          'dec':12,
         }
 class Bibliography():
     def __init__(self):
-        #will want to check if a local database exists, and if not grab one from the ADS
+        #will want to check if a local database exists, and if not make an empty one.
+        #User can choose to grab from ADS later if they want using adsRefresh()
+        self.qRemaining = 100
+        self.exhausted = False
         if not os.path.isfile('libraryInfo.json') or not os.path.isfile('libraryPapers.json') or not os.path.isfile('master.bib'):
             #Possibly prompt user to ask for permission here.
             #If any file is missing we have to regrab everything from ads.
@@ -38,10 +42,11 @@ class Bibliography():
             print('performing first-time setup')
             self.libInfo = {} # eventually structure will be {libraryID:{date:datemodified,num:#,name:''}}
             self.libPapers = {}# eventually structure will be {lid: [bibcodes]}
-            self.bibDatabase = {}
-            self.idCodes = {}
-            self.adsRefresh()
-            
+            self.bibDatabase = {}#Structure will be {bibcode:bibtexinformation}
+            self.idCodes = {}#Structure will be {idcode:bibcode}
+            #self.adsRefresh()
+            self.firstRun = True
+
         else:
             print('loading cached data...')
             with open('libraryInfo.json', 'r') as infofile:
@@ -51,6 +56,7 @@ class Bibliography():
             with open('master.bib','r') as bibfile:
                 bibfile_str = bibfile.read()
             self.bibDatabase,self.idCodes = bibtexDict(bibfile_str)
+            self.firstRun = False
 
     def saveFiles(self):
         with open('libraryInfo.json','w') as infofile:
@@ -68,6 +74,8 @@ class Bibliography():
         #  download libraries that have changed, 
         #  then download info on all the papers that have been added.
         #Don't assume that set up has been performed yet. Check to see if objects exist.
+        if self.exhausted:
+            return
         toDownload = self.librariesRefresh()
         newPapers = []
         for lid in toDownload:
@@ -75,17 +83,23 @@ class Bibliography():
             #but it's easier to type than libraryId or something, and it looks like 'id' is 
             #a python reserved word.
             newPapers+=self.libraryRefresh(lid)
-        idConflicts = self.downloadPaperInfo(list(set(newPapers)))
+        if len(newPapers) > 0:
+            idConflicts = self.downloadPaperInfo(list(set(newPapers)))
         #Will need to do something with the idConflicts, they're important!
+        #Solution: return the idConflicts and let someone else deal with it.
         self.updateLibrariesInBibtex()
-        return idConflicts
+        self.saveFiles()
+        return newPapers,idConflicts
 
         #update libraryInfo
 
     def librariesRefresh(self):
         #Download the list of libraries from ads, and compile a list of things that have changed.
+        if self.exhausted:
+            return
         q = LibrariesQuery()
         libs = q.execute().libraries
+        self.updateRateLimits(q)
         toDownload = []
         #if hasattr(self, 'libInfo') and hasattr(self,'libPapers') and hasattr(self,'bib_database'):
 
@@ -114,8 +128,12 @@ class Bibliography():
     def libraryRefresh(self,lid):
         #download the library specified and make a list of papers that have been added
         #lid is the ugly, unique name for the library.
+        if self.exhausted:
+            return
         q = LibraryQuery(lid,self.libInfo[lid]['num'])
         lib = q.execute()
+        self.updateRateLimits(q)
+
         newPapers = lib.bibcodes[:] #make a copy of lib.bibcodes so we don't modify it below
 
         #!!!! STRICTLY SPEAKING THIS SECTION OF CODE IS REDUNDANT!!!!!
@@ -142,7 +160,14 @@ class Bibliography():
 
         self.lastLibResponse = q
         return newPapers
-
+    def updateRateLimits(self,q):
+        thisQLeft = int(q.response.response.headers['X-RateLimit-Remaining'])
+        self._updateRateLimits(thisQLeft)
+    def _updateRateLimits(self,thisQLeft):
+        if thisQLeft < self.qRemaining:
+            self.qRemaining = thisQLeft
+        if self.qRemaining <= 1:
+            self.exhausted = True
     def downloadPaperInfo(self,papers):
         #download info on all the papers in the list of papers.
         #adds it to the self.bibDatabase 
@@ -152,44 +177,55 @@ class Bibliography():
         #compile that info into a bibtex file instead of downloading a bibtex file 
         #and the abstracts separately.
         #Update: I think it's easier to get the bibtex and the abstracts separately
+        if self.exhausted:
+            return
         namesChanged={} # maps old name to new name
         bq = BigQuery(papers)
         bq.execute()
+        self.updateRateLimits(bq)
         abstracts = bq.response.abstracts
         eq = ExportQuery(papers)
         bibtex = eq.execute()
+        self._updateRateLimits(int(eq.response.get_ratelimits()['remaining']))
         newBibDatabase = bibtexparser.loads(bibtex).entries
         self.lastBibResponse = eq
         self.lastBigResponse = bq
         #Now somehow I need to add all the abstracts to the correct papers in the bib structure
         for paper in newBibDatabase:
-            paper['bibcode'] = paper['ID']
+            paper['bibcode'] = paper['ID'] #Make sure to keep the bibcode, since it used to 
+            #only be stored under the ID of the paper, and we want to change the ID.
             paper['abstract'] = abstracts[paper['ID']]
             authorsList = [i.strip() for i in paper['author'].replace('\n',' ').split(' and ')]
             #go through author string and replace newlines with spaces. Then split author
             #string on ' and '. Then strip extra whitespace off of each author.
-
             
             firstAuthor = authorsList[0].split(',')[0][1:-1].replace(' ','')
             #Get the first author entry from above, separate first name from last name by ',',
             #remove the {} around the {LastName}, and remove any spaces that might be present.
 
             firstAuthor = removeSpecialCharacters(firstAuthor)
+            #Removes special characters, and usually ends up replacing them with 'normal' characters
 
-            #pid = firstAuthorTrunc + secondAuthor + thirdAuthor + paper['year']
+
             pid = firstAuthor + paper['year']
-            if pid in self.idCodes:
+            if pid in self.idCodes: #This paper will conflict ID wise with another paper, so gotta add letter
                 other = self.bibDatabase[self.idCodes[pid]]
                 assert other['bibcode'] != paper['bibcode'], "SOMEHOW the same paper got in twice.(1)"
-                if MONTHS[other['month']]>MONTHS[paper['month']]:
-                    paper['ID'] = pid+'a'
-                    other['ID'] = pid+'b'
-                    namesChanged[pid]=pid+'b'
-                    self.idCodes[pid+'b'] = self.idCodes.pop(pid)
-                    self.idCodes[pid+'a'] = paper['bibcode']
-                    self.bibDatabase[paper['bibcode']] = paper
+                otherMonth = MONTHS[other['month']] if 'month' in other else 13
+                paperMonth = MONTHS[paper['month']] if 'month' in paper else 13
+                if otherMonth>paperMonth:
+                    paper['ID'] = pid+'a' #Add 'a' to this paper because it's older
+                    other['ID'] = pid+'b' 
+                    namesChanged[pid]=pid+'b' #Add the old paper to the database of changed names
+                    self.idCodes[pid+'b'] = self.idCodes.pop(pid) #move originally-added paper from
+                    #old id code to new id code in the id codes database
+                    self.idCodes[pid+'a'] = paper['bibcode'] #Add the newly-added paper to the id codes
+                    #database
+                    self.bibDatabase[paper['bibcode']] = paper #Add the newly-added paper to the 
+                    #bibdatabase
                 else:
                     #I guess if the months are the same it will have to be arbitrary lettering.
+                    #In this section we do the same thing but with 'a' and 'b' swapped
                     paper['ID'] = pid+'b'
                     other['ID'] = pid+'a'
                     namesChanged[pid]=pid+'a'
@@ -202,6 +238,7 @@ class Bibliography():
                 sameAuthorYearPapers = []
                 flag = False
                 for i,char in enumerate(LETTERS):
+                    #Go through all the letters looking for papers with that name
                     if pid+char not in self.idCodes and not flag:
                         numPapers = i
                         flag = True
@@ -216,6 +253,7 @@ class Bibliography():
                 for i,other in enumerate(reversed(sameAuthorYearPapers)):
                     assert other['bibcode'] != paper['bibcode'], "SOMEHOW the same paper got in twice.(2)"
                     j = len(sameAuthorYearPapers) - i - 1
+                    
                     if MONTHS[paper['month']]>MONTHS[other['month']]:
                         #the paper needs to be inserted after the current one
                         paper['ID'] = pid+LETTERS[j+1]
@@ -253,9 +291,9 @@ class Bibliography():
         #goes through all the papers in the bibtex library and adds a list of libraries to it
         for library in self.libPapers:
             for bibcode in self.libPapers[library]:
-                if 'libraries' in self.bibDatabase[bibcode]:
+                if 'libraries' in self.bibDatabase[bibcode] and library not in self.bibDatabase[bibcode]['libraries'].split(','):
                     self.bibDatabase[bibcode]['libraries'] += ',' + library
-                else:
+                elif 'libraries' not in self.bibDatabase[bibcode]:
                     self.bibDatabase[bibcode]['libraries'] = library
 
     def whatPapersNeedPdfs(self):
@@ -273,7 +311,7 @@ class Bibliography():
         #Now we know that pid and pdfloc are both lists.
         assert len(pdfloc) == len(pid), "pid and pdfloc must have same number of elements"
 
-        for pid,pdfloc in zip(pid,pdfloc)
+        for pid,pdfloc in zip(pid,pdfloc):
             paper = self.bibDatabase[pid]
             if 'pdf' not in paper:
                 paper['pdf'] = pdfloc

@@ -18,3 +18,7 @@ Make sure to set up the python ads library by making the file `~/.ads/dev_key' a
 
 I think that's it for installation. Let me know if that doesn't cover everything.
 
+
+## Pleas for help
+
+If anyone knows a good way to render LaTeX equations or HTML formatting in a GTK application, let me know! I would really like to improve this app by allowing equations or formatting in the comments and/or abstracts.
