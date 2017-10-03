@@ -253,8 +253,9 @@ class Bibliography():
                 for i,other in enumerate(reversed(sameAuthorYearPapers)):
                     assert other['bibcode'] != paper['bibcode'], "SOMEHOW the same paper got in twice.(2)"
                     j = len(sameAuthorYearPapers) - i - 1
-                    
-                    if MONTHS[paper['month']]>MONTHS[other['month']]:
+                    otherMonth = MONTHS[other['month']] if 'month' in other else 13
+                    paperMonth = MONTHS[paper['month']] if 'month' in paper else 13
+                    if paperMonth>otherMonth:
                         #the paper needs to be inserted after the current one
                         paper['ID'] = pid+LETTERS[j+1]
                         self.bibDatabase[paper['bibcode']] = paper

@@ -92,15 +92,7 @@ class MainWindow(Gtk.Window):
             if not 'month' in paper:
                 paper['month'] = ''
             try:
-                self.listStore.append([paper['author'], # TODO: make this look better.
-                                   paper['journal'][1:].upper(), #also make this look better.
-                                   paper['month'],
-                                   int(paper['year']),
-                                   paper['title'],
-                                   int(paper['volume']),
-                                   paper['pages'],
-                                   paper['bibcode'],
-                                   paper['ID']])
+                self.listStore.append(makeListStoreElement(paper))
             except KeyError:
                 print(paperID)
 
@@ -283,6 +275,16 @@ class ListBoxRowWithData(Gtk.ListBoxRow):
         super(Gtk.ListBoxRow, self).__init__()
         self.data = data
         self.add(Gtk.Label(data))
+def makeListStoreElement(paper):
+        return [paper['author'], # TODO: make this look better.
+                paper['journal'][1:].upper(), #also make this look better.
+                paper['month'],
+                int(paper['year']),
+                paper['title'],
+                int(paper['volume']),
+                paper['pages'],
+                paper['bibcode'],
+                paper['ID']]
 
 
 if __name__ == '__main__':
