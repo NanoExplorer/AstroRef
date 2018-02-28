@@ -9,11 +9,11 @@ import bibtexparser
 from libraries import LibrariesQuery, LibraryQuery
 from ads import ExportQuery
 from bigquery import BigQuery
-#import webbrowser
+#
 #import threading
 
 
-DOI_PROVIDER = "https://doi-org.proxy.library.cornell.edu/"
+
 LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
 MONTHS = {'jan':1,
           'feb':2,
@@ -85,6 +85,8 @@ class Bibliography():
             newPapers+=self.libraryRefresh(lid)
         if len(newPapers) > 0:
             idConflicts = self.downloadPaperInfo(list(set(newPapers)))
+        else:
+            idConflicts = []
         #Will need to do something with the idConflicts, they're important!
         #Solution: return the idConflicts and let someone else deal with it.
         self.updateLibrariesInBibtex()
@@ -138,7 +140,7 @@ class Bibliography():
 
         #!!!! STRICTLY SPEAKING THIS SECTION OF CODE IS REDUNDANT!!!!!
         if lid in self.libPapers:
-            for bibcode in self.libPapers[key]:
+            for bibcode in self.libPapers[lid]:
                 try:
                     newPapers.remove(bibcode)
                 except ValueError:
@@ -146,8 +148,9 @@ class Bibliography():
         #!!!! END REDUNDANT CODE BLOCK. You may comment it out if you are confident.
 
         for paper in self.bibDatabase:
+            #When you iterate over the dictionary you only get the keys
             try:
-                newPapers.remove(paper['bibcode'])
+                newPapers.remove(paper)
             except ValueError:
                 pass
 
@@ -161,13 +164,17 @@ class Bibliography():
         self.lastLibResponse = q
         return newPapers
     def updateRateLimits(self,q):
-        thisQLeft = int(q.response.response.headers['X-RateLimit-Remaining'])
-        self._updateRateLimits(thisQLeft)
+        try:
+            thisQLeft = int(q.response.response.headers['X-RateLimit-Remaining'])
+            self._updateRateLimits(thisQLeft)
+        except KeyError:
+            print("I think they removed rate limits from some of the api endpoints?")
     def _updateRateLimits(self,thisQLeft):
         if thisQLeft < self.qRemaining:
             self.qRemaining = thisQLeft
         if self.qRemaining <= 1:
             self.exhausted = True
+        print("queries remaining: {}".format(self.qRemaining))
     def downloadPaperInfo(self,papers):
         #download info on all the papers in the list of papers.
         #adds it to the self.bibDatabase 
@@ -186,7 +193,9 @@ class Bibliography():
         abstracts = bq.response.abstracts
         eq = ExportQuery(papers)
         bibtex = eq.execute()
-        self._updateRateLimits(int(eq.response.get_ratelimits()['remaining']))
+        rate = eq.response.get_ratelimits()['remaining']
+        if rate:
+            self._updateRateLimits(int(rate))
         newBibDatabase = bibtexparser.loads(bibtex).entries
         self.lastBibResponse = eq
         self.lastBigResponse = bq
@@ -195,16 +204,8 @@ class Bibliography():
             paper['bibcode'] = paper['ID'] #Make sure to keep the bibcode, since it used to 
             #only be stored under the ID of the paper, and we want to change the ID.
             paper['abstract'] = abstracts[paper['ID']]
-            authorsList = [i.strip() for i in paper['author'].replace('\n',' ').split(' and ')]
-            #go through author string and replace newlines with spaces. Then split author
-            #string on ' and '. Then strip extra whitespace off of each author.
             
-            firstAuthor = authorsList[0].split(',')[0][1:-1].replace(' ','')
-            #Get the first author entry from above, separate first name from last name by ',',
-            #remove the {} around the {LastName}, and remove any spaces that might be present.
-
-            firstAuthor = removeSpecialCharacters(firstAuthor)
-            #Removes special characters, and usually ends up replacing them with 'normal' characters
+            firstAuthor=self.getFirstAuthor(paper['author'])
 
 
             pid = firstAuthor + paper['year']
@@ -287,7 +288,20 @@ class Bibliography():
                 self.bibDatabase[paper['bibcode']] = paper
                 self.idCodes[pid] = paper['bibcode']
         return namesChanged
+    
+    def getFirstAuthor(self,authors):
+        authorsList = [i.strip() for i in authors.replace('\n',' ').split(' and ')]
+        #go through author string and replace newlines with spaces. Then split author
+        #string on ' and '. Then strip extra whitespace off of each author.
         
+        firstAuthor = authorsList[0].split(',')[0][1:-1].replace(' ','')
+        #Get the first author entry from above, separate first name from last name by ',',
+        #remove the {} around the {LastName}, and remove any spaces that might be present.
+
+        firstAuthor = removeSpecialCharacters(firstAuthor)
+        #Removes special characters, and usually ends up replacing them with 'normal' characters
+        return firstAuthor
+
     def updateLibrariesInBibtex(self):
         #goes through all the papers in the bibtex library and adds a list of libraries to it
         for library in self.libPapers:
@@ -300,6 +314,8 @@ class Bibliography():
     def whatPapersNeedPdfs(self):
         return [self.bibDatabase[pid] for pid in self.bibDatabase if 'pdf' not in self.bibDatabase[pid]]
 
+    def hasPdf(self,pid):
+        return 'pdf' in self.bibDatabase[pid] 
     def setPdfs(self,pid,pdfloc):
         """Accepts strings or lists of strings as pid and pdfloc"""
 
@@ -315,13 +331,19 @@ class Bibliography():
         for pid,pdfloc in zip(pid,pdfloc):
             paper = self.bibDatabase[pid]
             if 'pdf' not in paper:
-                paper['pdf'] = pdfloc
+                paper['pdf'] = pdfloc.strip(',')
             else:
-                paper['pdf'] = paper['pdf'] + ',' + pdfloc
+                paper['pdf'] = paper['pdf'] + ',' + pdfloc.strip(',')
+    def setDefaultPdf(self,pid,index):
+        self.bibDatabase[pid]['default_pdf'] = index
 
-
-
-
+    def getDefaultPdf(self,pid):
+        if 'pdf' not in self.bibDatabase[pid]:
+            return 
+        try:
+            return self.bibDatabase[pid]['pdf'].split(',')[int(self.bibDatabase[pid]['default_pdf'])]
+        except KeyError:
+            return self.bibDatabase[pid]['pdf'].split(',')[0]
 """
 This function is a wrapper for the bibtexparser library
 """
