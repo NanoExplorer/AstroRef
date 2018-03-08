@@ -10,7 +10,7 @@ AstroRef is written in Python 3. Its dependencies are as follows:
 * ads
 * bibtexparser
 * gi / PyGObject (This may be included with your distro, I know Ubuntu has it)
-* requests (but ads depends on it too, so you'll probably already have it.)
+* requests (but ads depends on it too, so you'll get it automatically when you install ads.)
 * pylatexenc
 
 The hard part is getting gi / PyGObject installed. I can't help you with that because it seems like everyone has a different experience. If you don't want to run this program from a virtualenv like I do, it'll probably be a lot easier.
