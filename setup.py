@@ -115,5 +115,6 @@ class AssistantApp:
         self.assistant.set_page_header_image(label, pixbuf)
 
 if __name__ == '__main__':
-    AssistantApp(None)
-    Gtk.main()
+    print("Please execute ui.py instead")
+    #AssistantApp(None)
+    #Gtk.main()

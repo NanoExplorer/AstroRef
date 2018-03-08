@@ -399,6 +399,7 @@ class MainWindow(Gtk.Window):
         self.show_all()
     
     def populate_sidebar(self):
+        #Todo: make sure sidebar is sorted!
         sb = self.sidebar
         rows = []
         for i in range(self.sidebar_num_rows):
@@ -533,7 +534,7 @@ class ListBoxRowWithData(Gtk.ListBoxRow):
         self.data = newlabel
 def makeListStoreElement(paper):
         author = authorHandler(paper['author']) #every paper should have an author...
-        #TODO: Make author list pretty
+        #Done: Make author list pretty
         title = paper['title'] #and title
         year = int(paper['year']) # and year...
         bibcode = paper['bibcode'] #every paper DOES have a bibcode

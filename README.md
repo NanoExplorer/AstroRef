@@ -17,13 +17,13 @@ The hard part is getting gi / PyGObject installed. I can't help you with that be
 
 The other libraries can simply be installed with pip or your distro's package manager.
 
-Make sure to set up the python ads library by making the file `~/.ads/dev_key' and pasting your ADS api key in there.
+Make sure to set up the python ads library by making the file `~/.ads/dev_key` and pasting your ADS api key in there.
 
 I think that's it for installation. Let me know if that doesn't cover everything.
 
 ## Usage
 
-Once you have created a library (or a few libraries) on the new ADS, open AstroRef. On first run it should launch a tutorial that will give you the basics (feedback welcome). Then you can click on the refresh button in the upper left of the program to download all the metadata for the papers in the libraries you have on ADS. Then if you want local copies of all the PDFs, you can click the download button next to the refresh button and it will walk you through the process of linking PDFs to your local library.
+Once you have created a library (or a few libraries) on the new ADS, open AstroRef by executing `ui.py`. On first run it should launch a tutorial that will give you the basics (feedback welcome). Then you can click on the refresh button in the upper left of the program to download all the metadata for the papers in the libraries you have on ADS. Then if you want local copies of all the PDFs, you can click the download button next to the refresh button and it will walk you through the process of linking PDFs to your local library.
 
 ## Pleas for help
 
