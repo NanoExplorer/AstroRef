@@ -78,9 +78,12 @@ class MainWindow(Gtk.Window):
             size = prefs['size']
             self.columnwidths = prefs['colwidths']
         except:
-            print(traceback.format_exc())
+            #print(traceback.format_exc())
+            self.sidebarVisible=True
+            self.columnwidths = [50, 54, 54, 39, 50, 34, 50, 70, -1] # some arbitrary widths 
+            #should be good enough for a starting point at least.
             size = (800,600)
-            pos = (40,40)
+
         self.library_filter_name = None
         self.bib = management.Bibliography()
 
