@@ -37,7 +37,7 @@ AstroRef natively manages a .bib file that is kept in the same directory as ui.p
 
 Once your LaTeX document is using the bib file managed by AstroRef, you can simply highlight a paper in AstroRef and hit CTRL+C to copy the citation code of the paper to your clipboard. You can also select multiple papers (by CTRL-click or SHIFT-click) and copy all of their citation codes in the proper format!
 
-*if you do choose to make a symbolic link to the BibTex file, you will need to be careful when you add multiple papers written by the same author in the same year, because that can change the citation codes. I may be able to fix this issue with active bib file management.
+*if you do choose to make a symbolic link to the BibTex file, you will need to be careful when you add multiple papers written by the same author in the same year, because that can change the citation codes. I may be able to fix this issue with active bib file management. AstroRef will warn you when this happens.
 
 ## Pleas for help
 
