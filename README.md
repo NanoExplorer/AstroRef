@@ -9,7 +9,7 @@ The workflow of this program is simple: Create a library using the [new ADS](htt
 AstroRef is written in Python 3. Its dependencies are as follows:
 * ads
 * bibtexparser
-* gi / PyGObject
+* gi / PyGObject (This may be included with your distro, I know Ubuntu has it)
 * requests (but ads depends on it too, so you'll probably already have it.)
 * pylatexenc
 
