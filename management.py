@@ -9,25 +9,17 @@ import bibtexparser
 from libraries import LibrariesQuery, LibraryQuery
 from ads import ExportQuery
 from bigquery import BigQuery
+import calendar
 #
 #import threading
 
+BT_PARSER = bibtexparser.bparser.BibTexParser(common_strings=True)
 
 
 LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-MONTHS = {'jan':1,
-          'feb':2,
-          'mar':3,
-          'apr':4,
-          'may':5,
-          'jun':6,
-          'jul':7,
-          'aug':8,
-          'sep':9,
-          'oct':10,
-          'nov':11,
-          'dec':12,
-        }
+#MONTHS = {v.lower(): k+1 for k,v in enumerate(calendar.month_abbr)} Old versions of bibtexparser used this
+MONTHS={v: k+1 for k,v in enumerate(calendar.month_name)}
+
 class Bibliography():
     def __init__(self):
         #will want to check if a local database exists, and if not make an empty one.
@@ -196,7 +188,12 @@ class Bibliography():
         rate = eq.response.get_ratelimits()['remaining']
         if rate:
             self._updateRateLimits(int(rate))
-        newBibDatabase = bibtexparser.loads(bibtex).entries
+        print("***DUMPING PAPERS***")
+        print(papers)
+        print("***DUMPING BIBTEX***")
+        print(bibtex)
+        print("***FINISHED***")
+        newBibDatabase = bibtexparser.loads(bibtex,parser=BT_PARSER).entries
         self.lastBibResponse = eq
         self.lastBigResponse = bq
         #Now somehow I need to add all the abstracts to the correct papers in the bib structure
@@ -348,7 +345,7 @@ class Bibliography():
 This function is a wrapper for the bibtexparser library
 """
 def bibtexDict(btexstr):
-    raw = bibtexparser.loads(btexstr).entries
+    raw = bibtexparser.loads(btexstr,parser=BT_PARSER).entries
     data = {}
     idc={}
     for paper in raw:
