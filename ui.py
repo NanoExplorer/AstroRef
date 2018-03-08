@@ -409,13 +409,15 @@ class MainWindow(Gtk.Window):
             #Can't find a method for just getting all rows...
             r = sb.get_row_at_index(i)
             if r.data == "No Filters":
-                pass
+                rows.append("None")
             else:
                 if self.bib.libInfo[r.library_id]['name'] != r.data:
                     r.update_label(self.bib.libInfo[r.library_id]['name'])
                 rows.append(r.library_id)
                 print('updated row {}'.format(r.data))
-
+        if "None" not in rows:
+            sb.add(ListBoxRowWithData("No Filters",'None'))
+            self.sidebar_num_rows += 1
         for library in self.bib.libInfo:
             if library not in rows:
                 libname = self.bib.libInfo[library]['name']
@@ -424,9 +426,7 @@ class MainWindow(Gtk.Window):
                 sb.add(r)
                 self.sidebar_num_rows += 1
                 #print('added row {}'.format(libname))
-        if "None" not in rows:
-            sb.add(ListBoxRowWithData("No Filters",'None'))
-            self.sidebar_num_rows += 1
+
         sb.connect('row-activated', self.sb_click)
         sb.show_all() #Why do I have to do this??
     
