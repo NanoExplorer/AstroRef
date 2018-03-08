@@ -4,13 +4,15 @@ AstroRef is a reference management software designed for astronomers using Nasa 
 
 The workflow of this program is simple: Create a library using the [new ADS](http://ui.adsabs.harvard.edu/), and this program will automatically download bibliographic information on all the papers in that library and streamline the process of downloading PDFs of those papers. It then arranges those PDFs on your filesystem and gives you quick access to them through a list. 
 
+This program will also manage a BibTex compatible .bib file for ease of use with LaTeX citations!
+
 ## Installation
 
 AstroRef is written in Python 3. Its dependencies are as follows:
 * ads
 * bibtexparser
-* gi / PyGObject
-* requests (but ads depends on it too, so you'll probably already have it.)
+* gi / PyGObject (This may be included with your distro, I know Ubuntu has it)
+* requests (but ads depends on it too, so you'll get it automatically when you install ads.)
 * pylatexenc
 
 The hard part is getting gi / PyGObject installed. I can't help you with that because it seems like everyone has a different experience. If you don't want to run this program from a virtualenv like I do, it'll probably be a lot easier.
@@ -23,7 +25,19 @@ I think that's it for installation. Let me know if that doesn't cover everything
 
 ## Usage
 
+### Library management
 Once you have created a library (or a few libraries) on the new ADS, open AstroRef by executing `ui.py`. On first run it should launch a tutorial that will give you the basics (feedback welcome). Then you can click on the refresh button in the upper left of the program to download all the metadata for the papers in the libraries you have on ADS. Then if you want local copies of all the PDFs, you can click the download button next to the refresh button and it will walk you through the process of linking PDFs to your local library.
+
+Once you have downloaded some PDFs, you can simply double click on a paper in AstroRef to launch the pdf file in your default pdf viewer. 
+
+By default AstroRef shows all the papers from all your ADS libraries. You can filter the interface by library by selecting a library in the sidebar.
+
+### BibTex integration
+AstroRef natively manages a .bib file that is kept in the same directory as ui.py. If you want, you can use this .bib file as the bibliography file for a LaTeX document. I hope to add functionality in the future to have this program actively manage your .bib files, but for now you can just make a symbolic link* from your LaTeX working directory to master.bib, or manually copy master.bib from the program directory to your LaTeX directory. 
+
+Once your LaTeX document is using the bib file managed by AstroRef, you can simply highlight a paper in AstroRef and hit CTRL+C to copy the citation code of the paper to your clipboard. You can also select multiple papers (by CTRL-click or SHIFT-click) and copy all of their citation codes in the proper format!
+
+*if you do choose to make a symbolic link to the BibTex file, you will need to be careful when you add multiple papers written by the same author in the same year, because that can change the citation codes. I may be able to fix this issue with active bib file management. AstroRef will warn you when this happens.
 
 ## Pleas for help
 
