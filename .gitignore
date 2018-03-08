@@ -1,3 +1,10 @@
 *.json
 *.txt
 *.bib
+\#*\#
+*.pyc
+.*
+SETUP
+backup/
+library/
+add_pdf/
