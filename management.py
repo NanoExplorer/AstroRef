@@ -13,7 +13,9 @@ import calendar
 #
 #import threading
 
-BT_PARSER = bibtexparser.bparser.BibTexParser(common_strings=True)
+BT_PARSER = lambda: bibtexparser.bparser.BibTexParser(common_strings=True)
+#this is a lambda because I need a new one every time, otherwise things will go horribly wrong.
+#Don't you agree that the bibtexparser library v1.0.1 is waay better than the old version /sarcasm
 
 
 LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
@@ -193,7 +195,7 @@ class Bibliography():
         print("***DUMPING BIBTEX***")
         print(bibtex)
         print("***FINISHED***")
-        newBibDatabase = bibtexparser.loads(bibtex,parser=BT_PARSER).entries
+        newBibDatabase = bibtexparser.loads(bibtex,parser=BT_PARSER()).entries
         self.lastBibResponse = eq
         self.lastBigResponse = bq
         #Now somehow I need to add all the abstracts to the correct papers in the bib structure
@@ -201,7 +203,7 @@ class Bibliography():
             paper['bibcode'] = paper['ID'] #Make sure to keep the bibcode, since it used to 
             #only be stored under the ID of the paper, and we want to change the ID.
             paper['abstract'] = abstracts[paper['ID']]
-            
+            paper['title']=paper['title'].strip('{}') #don't you just love the new bibtexparser library.
             firstAuthor=self.getFirstAuthor(paper['author'])
 
 
@@ -345,7 +347,7 @@ class Bibliography():
 This function is a wrapper for the bibtexparser library
 """
 def bibtexDict(btexstr):
-    raw = bibtexparser.loads(btexstr,parser=BT_PARSER).entries
+    raw = bibtexparser.loads(btexstr,parser=BT_PARSER()).entries
     data = {}
     idc={}
     for paper in raw:
