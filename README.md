@@ -39,6 +39,9 @@ Once your LaTeX document is using the bib file managed by AstroRef, you can simp
 
 *if you do choose to make a symbolic link to the BibTex file, you will need to be careful when you add multiple papers written by the same author in the same year, because that can change the citation codes. I may be able to fix this issue with active bib file management. AstroRef will warn you when this happens.
 
+### PDF downloading
+AstroRef was built by a student at Cornell University, and as such the pdf downloader assumes you have an account with the Cornell library. If you would like to use this software at a different university or library provider, open an issue here, or edit the `DOI_PROVIDER` line at the top of `ui.py` to point to your library's doi proxy. However, every university library is a little bit different, and I can't know exactly how your library works without having an account with them. I'm happy to work with you to expand this program's capabilities.
+
 ## Pleas for help
 
 If anyone knows a good way to render LaTeX equations or HTML formatting in a GTK application, let me know! I would really like to improve this app by allowing equations or formatting in the comments and/or abstracts.
