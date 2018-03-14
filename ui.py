@@ -20,6 +20,7 @@ import setup
 import subprocess
 import webbrowser
 import traceback
+from errors import InternalServerError
 import requests
 from pylatexenc.latex2text import LatexNodes2Text
 ID_CHANGED_MESSAGE = """Unfortunately, due to the way this program handles paper names,
@@ -479,10 +480,27 @@ class MainWindow(Gtk.Window):
         self.syncing=False
 
     def adsRefreshThread(self):
-        newIds,idConflicts = self.bib.adsRefresh()
-        if len(idConflicts) != 0:
-            GLib.idle_add(self.idConflictsPopup,idConflicts)
-        GLib.idle_add(self.finishSync,newIds)
+        try:
+            newIds,idConflicts = self.bib.adsRefresh()
+            if len(idConflicts) != 0:
+                GLib.idle_add(self.idConflictsPopup,idConflicts)
+            GLib.idle_add(self.finishSync,newIds)
+        except InternalServerError:
+            GLib.idle_add(self.errorMessage,"Internal Server Error",
+                          "It looks like the ADS is having some trouble right now. Maybe try again later?")
+            GLib.idle_add(self.finishSync,[])
+        except requests.exceptions.ConnectionError:
+            GLib.idle_add(self.errorMessage,"Connection Error",
+                          "Either your internet isn't working or the ADS is down. Try checking those things?")
+            GLib.idle_add(self.finishSync,[])
+
+    def errorMessage(self,title,text):
+        d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
+                          Gtk.ButtonsType.OK,title)
+
+        d.format_secondary_text(text)
+        d.run()
+        d.destroy()
 
     def setSidebarStuff(self,button):
         if self.sidebarVisible:

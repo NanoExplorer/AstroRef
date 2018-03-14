@@ -43,12 +43,16 @@ Here's a sample LibsResponse.response.headers:
 'Access-Control-Allow-Headers': 'Accept, Authorization, Content-Type, Orcid-Authorization, X-BB-Api-Client-Version, X-CSRFToken'}
 
 """
+from errors import InternalServerError
 
 class LibsResponse():
     def __init__(self,libresponse):
         self.response = libresponse
         libJson = self.response.text
         data = json.loads(libJson)
+        #print(data)
+        if 'message' in data and data['message'] == 'Internal Server Error':
+            raise InternalServerError()
         self.libraries = data['libraries']
         self.libids = dict()
         for library in self.libraries:
@@ -74,6 +78,10 @@ class LibResponse():
         self.response = libresponse
         libJson = self.response.text
         data = json.loads(libJson)
+        if 'message' in data and data['message'] == 'Internal Server Error':
+            raise InternalServerError()
+
+        #print(data)
         self.bibcodes = data['documents']
         self.metadata = data['metadata']
         #self.metadata is the same as one of the dictionaries in the 
@@ -88,6 +96,7 @@ class LibraryQuery(BaseQuery):
     def __init__(self, lib_id, num_docs):
         self.HTTP_ENDPOINT = self.HTTP_ENDPOINT.format(lib_id)
         self.num_docs = num_docs
+        #print(lib_id,num_docs)
     def execute(self):
         self.response = LibResponse(
             self.session.get(self.HTTP_ENDPOINT,params={'rows':self.num_docs})
