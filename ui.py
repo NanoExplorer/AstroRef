@@ -46,6 +46,9 @@ rename c to d before b to c, if you're using your editor's find and replace tool
 #fix the ctrl f filter.
 
 DOI_PROVIDER = "https://doi-org.proxy.library.cornell.edu/"
+#If you're on a University network, the following line should work, depending on how your
+#university's library is set up:
+#DOI_PROVIDER = "https://doi.org/"
 ADS_PDF = "http://adsabs.harvard.edu/cgi-bin/nph-data_query?bibcode={}&link_type=ARTICLE"
 
 class MainWindow(Gtk.Window):
