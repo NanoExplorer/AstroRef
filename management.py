@@ -190,11 +190,11 @@ class Bibliography():
         rate = eq.response.get_ratelimits()['remaining']
         if rate:
             self._updateRateLimits(int(rate))
-        print("***DUMPING PAPERS***")
-        print(papers)
-        print("***DUMPING BIBTEX***")
-        print(bibtex)
-        print("***FINISHED***")
+        #print("***DUMPING PAPERS***")
+        #print(papers)
+        #print("***DUMPING BIBTEX***")
+        #print(bibtex)
+        #print("***FINISHED***")
         newBibDatabase = bibtexparser.loads(bibtex,parser=BT_PARSER()).entries
         self.lastBibResponse = eq
         self.lastBigResponse = bq
@@ -226,6 +226,7 @@ class Bibliography():
                 else:
                     #I guess if the months are the same it will have to be arbitrary lettering.
                     #In this section we do the same thing but with 'a' and 'b' swapped
+                    #test
                     paper['ID'] = pid+'b'
                     other['ID'] = pid+'a'
                     namesChanged[pid]=pid+'a'
