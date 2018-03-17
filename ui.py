@@ -19,6 +19,7 @@ import os
 import setup
 import subprocess
 import webbrowser
+import ads
 import traceback
 from errors import InternalServerError
 import requests
@@ -508,6 +509,11 @@ class MainWindow(Gtk.Window):
             GLib.idle_add(self.errorMessage,"Connection Error",
                           "Either your internet isn't working or the ADS is down. Try checking those things?")
             GLib.idle_add(self.finishSync,[])
+        except ads.exceptions.APIResponseError as e:
+            GLib.idle_add(self.errorMessage,"ADS Response Error",
+                          "It looks like the ADS is having some trouble right now. Maybe try again later?")
+            GLib.idle_add(self.finishSync,[])
+            print(e)
 
     def errorMessage(self,title,text):
         d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
