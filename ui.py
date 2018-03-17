@@ -44,6 +44,8 @@ rename c to d before b to c, if you're using your editor's find and replace tool
 #maybe remove deleted libraries from sidebar? That's more of a management.py problem <- possibly done? I know I remember working on this...
 #make the sidebar actually functional !!DONE!!
 #Todo: Figure out how to make a right click menu? It would be very useful.
+#      Turns out this requires converting my program from a mainwindow to an Application.
+#      I dunno how hard that will be.
 #fix the ctrl f filter.
 
 DOI_PROVIDER = "https://doi-org.proxy.library.cornell.edu/"
@@ -157,8 +159,19 @@ class MainWindow(Gtk.Window):
         #print("boop!")
         pdf_file = self.bib.getDefaultPdf(self.sorted_and_filtered[path.get_indices()][7])
         if pdf_file:
-            subprocess.call(('xdg-open',pdf_file))
-
+            subprocess.call(('xdg-open ',pdf_file))
+        #Todo: Evince (or whatever pdf viewer you use) quits when you quit AstroRef. Dunno how to fix.
+    """def treeview_rtclick(self,widget,event):
+        if event.button == 3:
+            path,_,_,_ = widget.get_path_at_pos(int(event.x),int(event.y))
+            treeiter = self.sorted_and_filtered.get_iter(path)
+            action_group=Gio.SimpleActionGroup()
+            print("got this far...")
+            action_group.insert("something?") #segfault
+            treeiter.insert_action_group(action_group)
+            menu = Gtk.Menu()
+            menu.attach_to_widget(treeiter)
+            menu.popup()"""
     def make_treeview(self):
         tvsw = Gtk.ScrolledWindow()
         tvsw.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC)
@@ -168,6 +181,7 @@ class MainWindow(Gtk.Window):
         treeview.set_activate_on_single_click(False)
         treeview.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
         treeview.connect("row-activated",self.treeview_open)
+        #treeview.connect("button-press-event",self.treeview_rtclick)
         tvsw.add(treeview)
         self.columns = []
         for column_num in range(9):
@@ -382,7 +396,8 @@ class MainWindow(Gtk.Window):
         self.bib.saveFiles()
         print("wut")
 
-    def getOutFilename(self,article,i=0,extension='pdf'):
+    def getOutFilename(self,article,i=0,extension='.pdf'):
+        assert(extension[0]=='.')
         path = 'library/' + self.bib.getFirstAuthor(article['author']) + '/'
         os.makedirs(path,exist_ok=True)
         offset = 0

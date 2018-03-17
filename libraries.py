@@ -52,6 +52,7 @@ class LibsResponse():
         data = json.loads(libJson)
         #print(data)
         if 'message' in data and data['message'] == 'Internal Server Error':
+            print(data)
             raise InternalServerError()
         self.libraries = data['libraries']
         self.libids = dict()
@@ -79,6 +80,7 @@ class LibResponse():
         libJson = self.response.text
         data = json.loads(libJson)
         if 'message' in data and data['message'] == 'Internal Server Error':
+            print(data)
             raise InternalServerError()
 
         #print(data)
