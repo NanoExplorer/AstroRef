@@ -159,7 +159,7 @@ class MainWindow(Gtk.Window):
         #print("boop!")
         pdf_file = self.bib.getDefaultPdf(self.sorted_and_filtered[path.get_indices()][7])
         if pdf_file:
-            subprocess.call(('xdg-open ',pdf_file))
+            subprocess.call(('xdg-open',pdf_file))
         #Todo: Evince (or whatever pdf viewer you use) quits when you quit AstroRef. Dunno how to fix.
     """def treeview_rtclick(self,widget,event):
         if event.button == 3:

@@ -318,6 +318,7 @@ class Bibliography():
         return 'pdf' in self.bibDatabase[pid] 
     def setPdfs(self,pid,pdfloc):
         """Accepts strings or lists of strings as pid and pdfloc"""
+        """Really this adds pdfs instead of setting them."""
 
         if type(pid) is str:
             pid = [pid]
