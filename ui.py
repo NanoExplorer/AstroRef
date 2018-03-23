@@ -21,7 +21,7 @@ import subprocess
 import webbrowser
 import ads
 import traceback
-from errors import InternalServerError
+from errors import InternalServerError, APILimitError
 import requests
 from pylatexenc.latex2text import LatexNodes2Text
 ID_CHANGED_MESSAGE = """Unfortunately, due to the way this program handles paper names,
@@ -39,15 +39,8 @@ right. These names are not ordered in any order, so if b -> c and c -> d, you'll
 rename c to d before b to c, if you're using your editor's find and replace tool.
 """
 
-#done: Add important features like PDF downloader and open on double click, !!DONE!!
-#bib reference copy on ctrlc !!DONE!!
-#prettify the authors list !!mostly Done!!
+#Todo:
 #maybe remove deleted libraries from sidebar? That's more of a management.py problem <- possibly done? I know I remember working on this...
-#make the sidebar actually functional !!DONE!!
-#Todo: Figure out how to make a right click menu? It would be very useful.
-#      Turns out this requires converting my program from a mainwindow to an Application.
-#      I dunno how hard that will be.
-#fix the ctrl f filter.
 
 DOI_PROVIDER = "https://doi-org.proxy.library.cornell.edu/"
 #If you're on a University network, the following line should work, depending on how your
@@ -153,15 +146,25 @@ class MainWindow(Gtk.Window):
             text = ""
             tm,tp=widget.get_selection().get_selected_rows()
             for t in tp:
-                text = text + self.listStore[t.get_indices()[0]][8] + ','
+                text = text + self.sorted_and_filtered[t.get_indices()[0]][8] + ','
             c.set_text(text.strip(','),-1)
             print("copied {}".format(text))
+        elif Gdk.ModifierType.CONTROL_MASK & ev.state != 0 and ev.hardware_keycode==53 and ev.keyval == 120:
+            #user pressed ctrl-x
+            c=Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+            text = ""
+            tm,tp=widget.get_selection().get_selected_rows()
+            for t in tp:
+                text = text + self.sorted_and_filtered[t.get_indices()[0]][7] + '\n'
+            c.set_text(text.strip(),-1)
+            print("copied {}".format(text))
+        else:
+            print(ev.state,ev.hardware_keycode,ev.keyval)
     def treeview_open(self,widget,path,column):
         #print("boop!")
         pdf_file = self.bib.getDefaultPdf(self.sorted_and_filtered[path.get_indices()][7])
         if pdf_file:
             subprocess.call(('xdg-open',pdf_file))
-        #Todo: Evince (or whatever pdf viewer you use) quits when you quit AstroRef. Dunno how to fix.
     """def treeview_rtclick(self,widget,event):
         if event.button == 3:
             path,_,_,_ = widget.get_path_at_pos(int(event.x),int(event.y))
@@ -312,8 +315,6 @@ class MainWindow(Gtk.Window):
         print('woo')
 
     def download_article(self,article):
-        #TODO (minor): make the requests part async so that the program isn't reported as not responding by the OS
-
         if 'journal' in article and article['journal'] == 'ArXiv e-prints':
             pdf_url = 'https://arxiv.org/pdf/' + article['eprint']
         else:
@@ -366,28 +367,38 @@ class MainWindow(Gtk.Window):
                 url = b
                 webbrowser.open_new_tab(url)
                 d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
-                                      Gtk.ButtonsType.OK_CANCEL,"Opened browser")
+                                      Gtk.ButtonsType.NONE,"Opened browser")
 
-                d.format_secondary_text("Save the file associated with {} to the 'add_pdf' folder, then click OK. Click cancel to stop the downloading process.".format(article['title']))
+                d.format_secondary_text("Save the file associated with {} to the 'add_pdf' folder.".format(article['title']))
+                d.add_buttons("Add this pdf",1,
+                              "Skip permanently",2,
+                              "Skip once",3,
+                              "Cancel",4)
                 r = d.run()
                 d.destroy()
-                if r == Gtk.ResponseType.OK:
+                if r == 1:
                     self.grabPdf(article)
-                elif r== Gtk.ResponseType.CANCEL:
+                elif r== 4:
                     break
+                elif r==2:
+                    self.bib.setSkipPdf(article['bibcode'])
+
             elif a == '?':
                 d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
-                                      Gtk.ButtonsType.YES_NO,"The article {} has no DOI number.".format(article['title']))
-                d.format_secondary_text("Do you want to find it manually?")
+                                      Gtk.ButtonsType.NONE,"The article {} has no DOI number.".format(article['title']))
+                d.format_secondary_text("Either find it manually and put the pdf in add_pdf, or click one of the skip options.")
+                d.add_buttons("Add this pdf",1,
+                              "Skip permanently",2,
+                              "Skip once",3,
+                              "Cancel",4)
                 r=d.run()
                 d.destroy()
-                if r==Gtk.ResponseType.YES:
-                    d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
-                                          Gtk.ButtonsType.OK_CANCEL,"Place the article {} in the 'add_pdf' folder.".format(article['title']))
-                    r=d.run()
-                    d.destroy()
-                    if r==Gtk.ResponseType.OK:
-                        self.grabPdf(article)
+                if r==1:
+                    self.grabPdf(article)
+                elif r==2:
+                    self.bib.setSkipPdf(article['bibcode'])
+                elif r==4:
+                    break
             elif a == 'pdf':
                 fname = self.getOutFilename(article)
                 with open(fname,'wb') as f:
@@ -422,7 +433,6 @@ class MainWindow(Gtk.Window):
         self.show_all()
     
     def populate_sidebar(self):
-        #Todo: make sure sidebar is sorted!
         sb = self.sidebar
         rows = []
         for i in range(self.sidebar_num_rows):
@@ -514,6 +524,10 @@ class MainWindow(Gtk.Window):
                           "It looks like the ADS is having some trouble right now. Maybe try again later?")
             GLib.idle_add(self.finishSync,[])
             print(e)
+        except APILimitError:
+            GLib.idle_add(self.errorMessage,"API limit reached",
+                          "You have reached the maximum number of API requests allowed per day. Try again tomorrow.")
+            GLib.idle_add(self.finishSync,[])
 
     def errorMessage(self,title,text):
         d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,

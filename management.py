@@ -10,7 +10,7 @@ from libraries import LibrariesQuery, LibraryQuery
 from ads import ExportQuery
 from bigquery import BigQuery
 import calendar
-#
+from errors import APILimitError
 #import threading
 
 BT_PARSER = lambda: bibtexparser.bparser.BibTexParser(common_strings=True)
@@ -43,14 +43,16 @@ class Bibliography():
 
         else:
             print('loading cached data...')
-            with open('libraryInfo.json', 'r') as infofile:
-                self.libInfo = json.loads(infofile.read())
-            with open('libraryPapers.json','r') as papersfile:
-                self.libPapers = json.loads(papersfile.read())
-            with open('master.bib','r') as bibfile:
-                bibfile_str = bibfile.read()
-            self.bibDatabase,self.idCodes = bibtexDict(bibfile_str)
+            self.loadFiles()
             self.firstRun = False
+    def loadFiles(self):
+        with open('libraryInfo.json', 'r') as infofile:
+            self.libInfo = json.loads(infofile.read())
+        with open('libraryPapers.json','r') as papersfile:
+            self.libPapers = json.loads(papersfile.read())
+        with open('master.bib','r') as bibfile:
+            bibfile_str = bibfile.read()
+        self.bibDatabase,self.idCodes = bibtexDict(bibfile_str)
 
     def saveFiles(self):
         with open('libraryInfo.json','w') as infofile:
@@ -63,26 +65,38 @@ class Bibliography():
         #    take2file.write(json.dumps(self.bibDatabase))
 
     def adsRefresh(self):
-        #perform a full ads refresh - 
-        #  check the list of libraries, 
-        #  download libraries that have changed, 
-        #  then download info on all the papers that have been added.
-        #Don't assume that set up has been performed yet. Check to see if objects exist.
         if self.exhausted:
-            return
-        toDownload = self.librariesRefresh()
-        newPapers = []
-        for lid in toDownload:
-            #I know it's confusing to have a variable called lid when that's a different word,
-            #but it's easier to type than libraryId or something, and it looks like 'id' is 
-            #a python reserved word.
-            newPapers+=self.libraryRefresh(lid)
-        if len(newPapers) > 0:
-            idConflicts = self.downloadPaperInfo(list(set(newPapers)))
-        else:
-            idConflicts = []
-        #Will need to do something with the idConflicts, they're important!
-        #Solution: return the idConflicts and let someone else deal with it.
+            raise APILimitError()
+        try:
+            #perform a full ads refresh - 
+            #  check the list of libraries, 
+            #  download libraries that have changed, 
+            #  then download info on all the papers that have been added.
+            #Don't assume that set up has been performed yet. Check to see if objects exist.
+
+            toDownload = self.librariesRefresh()
+            newPapers = []
+            for lid in toDownload:
+                #I know it's confusing to have a variable called lid when that's a different word,
+                #but it's easier to type than libraryId or something, and it looks like 'id' is 
+                #a python reserved word.
+                newPapers+=self.libraryRefresh(lid)
+                print("refreshed library {}".format(lid))
+            if len(newPapers) > 0:
+                idConflicts = self.downloadPaperInfo(list(set(newPapers)))
+            else:
+                idConflicts = []
+            #Will need to do something with the idConflicts, they're important!
+            #Solution: return the idConflicts and let someone else deal with it.
+        except:
+            #Note: This solution assumes that whenever the library gets modified, it gets saved to disk.
+            #This catch is in place because if the libraryInfo gets successfully fetched and then 
+            #libraryRefresh fails, and the user tries to refresh again, the adsrefresh will compare
+            #the modified librariesInfo data to the info fetched from ADS, find no new papers, and 
+            #saveFiles(), saving the modified librariesInfo file to disk and preventing the program from 
+            #finding some modifications.
+            self.loadFiles()
+            raise
         self.updateLibrariesInBibtex()
         self.saveFiles()
         return newPapers,idConflicts
@@ -312,8 +326,16 @@ class Bibliography():
                     self.bibDatabase[bibcode]['libraries'] = library
 
     def whatPapersNeedPdfs(self):
-        return [self.bibDatabase[pid] for pid in self.bibDatabase if 'pdf' not in self.bibDatabase[pid]]
+        return [self.bibDatabase[pid] for pid in self.bibDatabase if self.needsPdf(pid)]
 
+    def needsPdf(self,pid):
+        paper = self.bibDatabase[pid]
+        return ('pdf' not in paper) and (('skip' not in paper) or paper['skip'] == 'false')
+    def setSkipPdf(self,pid,toSkip=True):
+        if toSkip:
+            self.bibDatabase[pid]['skip']='true'
+        else:
+            self.bibDatabase[pid]['skip']='false'
     def hasPdf(self,pid):
         return 'pdf' in self.bibDatabase[pid] 
     def setPdfs(self,pid,pdfloc):
