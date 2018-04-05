@@ -16,7 +16,7 @@ from gi.repository import Gtk, Gio, GObject, GLib,Gdk
 import threading
 import management
 import os
-import setup
+import tutorial as setup
 import subprocess
 import webbrowser
 import ads
