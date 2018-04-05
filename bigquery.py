@@ -42,27 +42,3 @@ class BigQuery(BaseQuery):
                           )
         )
         return self.response
-"""
-class LibResponse():
-    def __init__(self,libresponse):
-        self.response = libresponse
-        libJson = self.response.text
-        data = json.loads(libJson)
-        self.bibcodes = data['documents']
-        self.metadata = data['medatdata']
-        #self.metadata is the same as one of the dictionaries in the 
-        #list you get from LibrariesQuery
-    def get_bibcodes(self):
-        return self.bibcodes
-    def get_remaining_queries(self):
-        return self.response.headers['X-RateLimit-Remaining']
-
-class LibraryQuery(BaseQuery):
-    HTTP_ENDPOINT = "https://api.adsabs.harvard.edu/v1/biblib/libraries/{}"
-    def __init__(self, lib_id):
-        self.HTTP_ENDPOINT = self.HTTP_ENDPOINT.format(lib_id)
-    def execute(self):
-        self.response = LibResponse(
-            self.session.get(self.HTTP_ENDPOINT)
-        )
-        return self.response"""
