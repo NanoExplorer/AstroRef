@@ -1,8 +1,6 @@
 # This file handles the logic of managing a bunch of papers. It has the refresh functions and 
 # storage functions that will be used by the program.
-#
-#
-#
+
 import os
 import json
 import bibtexparser
@@ -11,14 +9,12 @@ from ads import ExportQuery
 from bigquery import BigQuery
 import calendar
 from errors import APILimitError
-#import threading
 
 test_strings = """
 @string{january = {January}}
 @string{february = {February}}
 @string{march = {March}}
 @string{april = {April}}
-@string{may = {May}}
 @string{june = {June}}
 @string{july = {July}}
 @string{august = {August}}
@@ -28,6 +24,7 @@ test_strings = """
 @string{december = {December}}
 
 """
+#May is missing because its abbreviation is the same as the month name.
 # other_test_strings = """@string{January = {January}}
 # @string{February = {February}}
 # @string{March = {March}}
