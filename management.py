@@ -13,14 +13,77 @@ import calendar
 from errors import APILimitError
 #import threading
 
-BT_PARSER = lambda: bibtexparser.bparser.BibTexParser(common_strings=True)
-#this is a lambda because I need a new one every time, otherwise things will go horribly wrong.
-#Don't you agree that the bibtexparser library v1.0.1 is waay better than the old version /sarcasm
+test_strings = """
+@string{january = {January}}
+@string{february = {February}}
+@string{march = {March}}
+@string{april = {April}}
+@string{may = {May}}
+@string{june = {June}}
+@string{july = {July}}
+@string{august = {August}}
+@string{september = {September}}
+@string{october = {October}}
+@string{november = {November}}
+@string{december = {December}}
+
+"""
+# other_test_strings = """@string{January = {January}}
+# @string{February = {February}}
+# @string{March = {March}}
+# @string{April = {April}}
+# @string{May = {May}}
+# @string{June = {June}}
+# @string{July = {July}}
+# @string{August = {August}}
+# @string{September = {September}}
+# @string{October = {October}}
+# @string{November = {November}}
+# @string{December = {December}}"""
+def BT_PARSER():
+    # evilstrings =  [('january', "January"),
+    #                 ('february', "February"),
+    #                 ('march',"March"),
+    #                 ('april',"April"),
+    #                 ('may',"May"),
+    #                 ('june',"June"),
+    #                 ('july',"July"),
+    #                 ('august',"August"),
+    #                 ('september',"September"),
+    #                 ('october',"October"),
+    #                 ('november',"November"),
+    #                 ('december',"December"),
+    #                 ('January', "January"),
+    #                 ('February', "February"),
+    #                 ('March',"March"),
+    #                 ('April',"April"),
+    #                 ('May',"May"),
+    #                 ('June',"June"),
+    #                 ('July',"July"),
+    #                 ('August',"August"),
+    #                 ('September',"September"),
+    #                 ('October',"October"),
+    #                 ('November',"November"),
+    #                 ('December',"December")]
+
+    btpsr= bibtexparser.bparser.BibTexParser(common_strings=True)
+    #btpsr.bib_database.strings.update(evilstrings)
+    return btpsr
+#this is a full-on function because I need a new one every time, otherwise things will go horribly wrong.
+#And isn't it great that I have to define my own month strings otherwise the program will crash when I 
+#inevitably download a file where `month=January` and not month=`jan`? But then why does it save the 
+#bibtex file so that `month={January}` when `month=January` crashes? Why can't it just import the month
+#as a string? I'd rather worry about that than have my program crash for a reason I can't divine by myself.
+#Don't you agree that the bibtexparser library v1.0.1 is waay better than the old version? /sarcasm
+
 
 
 LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-#MONTHS = {v.lower(): k+1 for k,v in enumerate(calendar.month_abbr)} Old versions of bibtexparser used this
-MONTHS={v: k+1 for k,v in enumerate(calendar.month_name)}
+#SHORT_MONTHS = {v.lower(): k for k,v in enumerate(calendar.month_abbr)}# Old versions of bibtexparser used this
+MONTHS={v: k for k,v in enumerate(calendar.month_name)}
+#INV_MONTHS = {v:k for k,v in MONTHS.items()}
+#Short months and inv months are only needed if you want to clean up bib files where some months are stored
+#as month = {jan} instead of month = {January}
 
 class Bibliography():
     def __init__(self):
@@ -84,6 +147,7 @@ class Bibliography():
                 print("refreshed library {}".format(lid))
             if len(newPapers) > 0:
                 idConflicts = self.downloadPaperInfo(list(set(newPapers)))
+                print(newPapers)
             else:
                 idConflicts = []
             #Will need to do something with the idConflicts, they're important!
@@ -146,14 +210,18 @@ class Bibliography():
 
         newPapers = lib.bibcodes[:] #make a copy of lib.bibcodes so we don't modify it below
 
-        #!!!! STRICTLY SPEAKING THIS SECTION OF CODE IS REDUNDANT!!!!!
+
+
+        #Note: although those two for loops appear to do the same thing, they are not totally
+        #redundant to each other. Because you can have papers that are in bibDatabase but not 
+        #in any library, and if you add the same paper to two different libraries simultaneously
+        #it will be in libPapers but not bibDatabase.
         if lid in self.libPapers:
             for bibcode in self.libPapers[lid]:
                 try:
                     newPapers.remove(bibcode)
                 except ValueError:
                     print("Paper {} must have been removed from library.".format(bibcode))
-        #!!!! END REDUNDANT CODE BLOCK. You may comment it out if you are confident.
 
         for paper in self.bibDatabase:
             #When you iterate over the dictionary you only get the keys
@@ -204,12 +272,13 @@ class Bibliography():
         rate = eq.response.get_ratelimits()['remaining']
         if rate:
             self._updateRateLimits(int(rate))
-        #print("***DUMPING PAPERS***")
-        #print(papers)
-        #print("***DUMPING BIBTEX***")
-        #print(bibtex)
-        #print("***FINISHED***")
-        newBibDatabase = bibtexparser.loads(bibtex,parser=BT_PARSER()).entries
+        # print("***DUMPING PAPERS***")
+        # print(papers)
+        # print("***DUMPING BIBTEX***")
+        # print(bibtex)
+        # print("***FINISHED***")
+
+        newBibDatabase = bibtexparser.loads(test_strings+bibtex,parser=BT_PARSER()).entries
         self.lastBibResponse = eq
         self.lastBigResponse = bq
         #Now somehow I need to add all the abstracts to the correct papers in the bib structure
@@ -371,12 +440,20 @@ class Bibliography():
 This function is a wrapper for the bibtexparser library
 """
 def bibtexDict(btexstr):
-    raw = bibtexparser.loads(btexstr,parser=BT_PARSER()).entries
+    raw = bibtexparser.loads(test_strings+btexstr,parser=BT_PARSER()).entries
     data = {}
     idc={}
     for paper in raw:
         data[paper['bibcode']] = paper
         idc[paper['ID']] = paper['bibcode']
+        # if 'month' in paper and paper['month'] in SHORT_MONTHS:
+        #     num = SHORT_MONTHS[paper['month']]
+        #     longmonth = INV_MONTHS[num]
+        #     paper['month'] = longmonth
+        #That section was meant to fix problems, because if you used an old version of this program
+        #with the old version of bibtexparser, you could have some months stored in the .bib file as
+        #month={jan} and others as month = {January}. This standardizes everything to the long form name.
+
     return data,idc
 
 def unBibtexDict(btexdict):
