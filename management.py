@@ -86,7 +86,7 @@ class Bibliography():
     def __init__(self):
         #will want to check if a local database exists, and if not make an empty one.
         #User can choose to grab from ADS later if they want using adsRefresh()
-        self.qRemaining = 100
+        self.qRemaining = 1000
         self.exhausted = False
         if not os.path.isfile('libraryInfo.json') or not os.path.isfile('libraryPapers.json') or not os.path.isfile('master.bib'):
             #Possibly prompt user to ask for permission here.
@@ -262,20 +262,25 @@ class Bibliography():
         if self.exhausted:
             return
         namesChanged={} # maps old name to new name
-        bq = BigQuery(papers)
-        bq.execute()
-        self.updateRateLimits(bq)
-        abstracts = bq.response.abstracts
+        #bq = BigQuery(papers)
+        #bq.execute()
+        #self.updateRateLimits(bq)
+        #abstracts = bq.response.abstracts
         eq = ExportQuery(papers)
+        eq.format="bibtexabs"
+        #SICK HACK COMPLETE!
+
         bibtex = eq.execute()
         rate = eq.response.get_ratelimits()['remaining']
         if rate:
             self._updateRateLimits(int(rate))
+        else:
+            print("Unable to get rate limits")
 
 
         newBibDatabase = bibtexparser.loads(test_strings+bibtex,parser=BT_PARSER()).entries
         self.lastBibResponse = eq
-        self.lastBigResponse = bq
+        #self.lastBigResponse = bq
         #Now somehow I need to add all the abstracts to the correct papers in the bib structure
         if len(newBibDatabase)!=len(papers):
             print("***DUMPING PAPERS***")
@@ -289,7 +294,11 @@ class Bibliography():
         for paper in newBibDatabase:
             paper['bibcode'] = paper['ID'] #Make sure to keep the bibcode, since it used to 
             #only be stored under the ID of the paper, and we want to change the ID.
-            paper['abstract'] = abstracts[paper['ID']]
+            #paper['abstract'] = abstracts[paper['ID']]
+            try:
+                paper['abstract'] = paper['abstract'][1:-1]
+            except KeyError:
+                print("Paper {} does not have an abstract.".format(paper['bibcode']))
             paper['title']=paper['title'].strip('{}') #don't you just love the new bibtexparser library.
             firstAuthor=self.getFirstAuthor(paper['author'])
 
