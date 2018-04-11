@@ -121,7 +121,7 @@ class MainWindow(Gtk.Window):
             try:
                 self.listStore.append(makeListStoreElement(paper))
             except KeyError:
-                print("KeyError in create_list_model(). Paper ID: {}".format(paperID))
+                print("KeyError in create_list_model(). Paper ID: '{}'".format(paperID))
         self.library_filter = self.listStore.filter_new()
         self.library_filter.set_visible_func(self.library_filter_func)
         self.sorted_and_filtered = Gtk.TreeModelSort(model=self.library_filter)
@@ -500,7 +500,7 @@ class MainWindow(Gtk.Window):
             try:
                 self.listStore.append(makeListStoreElement(paper))
             except KeyError:
-                print("KeyError in finishSync(), paper ID: {}".format(paperID))
+                print("KeyError in finishSync(), paper ID: {}. Paper was not added to library.".format(paperID))
         #Add new libraries to sidebar
         self.populate_sidebar()
         self.syncing=False
@@ -594,7 +594,7 @@ class ListBoxRowWithData(Gtk.ListBoxRow):
 def makeListStoreElement(paper):
         author = authorHandler(paper['author']) #every paper should have an author...
         #Done: Make author list pretty
-        title = paper['title'] #and title
+        title = paper['title'].replace('\n',' ') #and title
         year = int(paper['year']) # and year...
         bibcode = paper['bibcode'] #every paper DOES have a bibcode
         ID = paper['ID'] #and ID
@@ -604,10 +604,13 @@ def makeListStoreElement(paper):
             else:
                 journal = paper['journal']
         except KeyError:
-            if paper['ENTRYTYPE'].lower() == 'inproceedings':
-                journal = paper['series']
+            if 'series' in paper:
+                if paper['series'][0] == '\\':
+                    journal = paper['series'][1:].upper()
+                else:
+                    journal = paper['series']
             else:
-                journal = ''
+                journal = paper['bibcode'][4:9].strip('.')
         try: 
             month = paper['month']
         except KeyError:

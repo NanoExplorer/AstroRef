@@ -8,7 +8,7 @@ from libraries import LibrariesQuery, LibraryQuery
 from ads import ExportQuery
 from bigquery import BigQuery
 import calendar
-from errors import APILimitError
+from errors import APILimitError, ADSMalfunctionError
 
 test_strings = """
 @string{january = {January}}
@@ -116,9 +116,11 @@ class Bibliography():
 
     def saveFiles(self):
         with open('libraryInfo.json','w') as infofile:
-            infofile.write(json.dumps(self.libInfo))
+            infofile.write(json.dumps(self.libInfo,sort_keys=True,
+                                  indent=4, separators=(',', ': ')))
         with open('libraryPapers.json','w') as papersfile:
-            papersfile.write(json.dumps(self.libPapers))
+            papersfile.write(json.dumps(self.libPapers,sort_keys=True,
+                                  indent=4, separators=(',', ': ')))
         with open('master.bib','w') as bibfile:
             bibfile.write(unBibtexDict(self.bibDatabase))
         #with open('other.json','w') as take2file:
@@ -269,16 +271,21 @@ class Bibliography():
         rate = eq.response.get_ratelimits()['remaining']
         if rate:
             self._updateRateLimits(int(rate))
-        # print("***DUMPING PAPERS***")
-        # print(papers)
-        # print("***DUMPING BIBTEX***")
-        # print(bibtex)
-        # print("***FINISHED***")
+
 
         newBibDatabase = bibtexparser.loads(test_strings+bibtex,parser=BT_PARSER()).entries
         self.lastBibResponse = eq
         self.lastBigResponse = bq
         #Now somehow I need to add all the abstracts to the correct papers in the bib structure
+        if len(newBibDatabase)!=len(papers):
+            print("***DUMPING PAPERS***")
+            print(papers)
+            print("***DUMPING BIBTEX***")
+            print(bibtex)
+            print("***FINISHED***")
+            raise ADSMalfunctionError
+
+
         for paper in newBibDatabase:
             paper['bibcode'] = paper['ID'] #Make sure to keep the bibcode, since it used to 
             #only be stored under the ID of the paper, and we want to change the ID.
