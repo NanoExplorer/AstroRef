@@ -162,7 +162,7 @@ class Bibliography():
             raise
         self.updateLibrariesInBibtex()
         self.saveFiles()
-        return newPapers,idConflicts
+        return list(set(newPapers)),idConflicts
 
         #update libraryInfo
 
