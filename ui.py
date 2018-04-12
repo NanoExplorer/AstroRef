@@ -40,12 +40,14 @@ rename c to d before b to c, if you're using your editor's find and replace tool
 """
 
 #Todo:
-#maybe remove deleted libraries from sidebar? That's more of a management.py problem <- possibly done? I know I remember working on this...
+#maybe remove deleted libraries from sidebar? That's more of a management.py problem 
 
 DOI_PROVIDER = "https://doi-org.proxy.library.cornell.edu/"
 #If you're on a University network, the following line should work, depending on how your
 #university's library is set up:
 #DOI_PROVIDER = "https://doi.org/"
+#Alternatively you can set the program to prefer the arXiv for downloading pdfs:
+PREFER_ARXIV = False
 ADS_PDF = "http://adsabs.harvard.edu/cgi-bin/nph-data_query?bibcode={}&link_type=ARTICLE"
 
 class MainWindow(Gtk.Window):
@@ -77,6 +79,7 @@ class MainWindow(Gtk.Window):
             self.sidebarVisible = prefs['sb']
             size = prefs['size']
             self.columnwidths = prefs['colwidths']
+            PREFER_ARXIV = prefs['arxiv']
         except:
             #print(traceback.format_exc())
             self.sidebarVisible=True
@@ -128,17 +131,6 @@ class MainWindow(Gtk.Window):
         #I need a better filter solution than this. I have to pass the filter into the 
         #treeview, so it's hard to layer filters. 
 
-
-    """COLUMN_AUTHOR,
-     COLUMN_JOURNAL,
-     COLUMN_MONTH,
-     COLUMN_YEAR,
-     COLUMN_TITLE,
-     COLUMN_VOLUME,
-     COLUMN_PAGES,
-     COLUMN_BIBCODE,
-     COLUMN_ID)"""
-
     def treeview_copy(self,widget,ev,data=None):
         if Gdk.ModifierType.CONTROL_MASK & ev.state != 0 and ev.hardware_keycode==54 and ev.keyval == 99:
             #User pressed ctrl-c
@@ -160,11 +152,12 @@ class MainWindow(Gtk.Window):
             print("copied {}".format(text))
         else:
             print(ev.state,ev.hardware_keycode,ev.keyval)
+
     def treeview_open(self,widget,path,column):
-        #print("boop!")
         pdf_file = self.bib.getDefaultPdf(self.sorted_and_filtered[path.get_indices()][7])
         if pdf_file:
             subprocess.call(('xdg-open',pdf_file))
+
     """def treeview_rtclick(self,widget,event):
         if event.button == 3:
             path,_,_,_ = widget.get_path_at_pos(int(event.x),int(event.y))
@@ -176,6 +169,7 @@ class MainWindow(Gtk.Window):
             menu = Gtk.Menu()
             menu.attach_to_widget(treeiter)
             menu.popup()"""
+
     def make_treeview(self):
         tvsw = Gtk.ScrolledWindow()
         tvsw.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC)
@@ -197,12 +191,9 @@ class MainWindow(Gtk.Window):
             column.set_sizing(Gtk.TreeViewColumnSizing.FIXED)
             if column_num == self.COLUMN_ID:
                 column.set_resizable(False)
-                #column.set_expand(True)
             else:
                 column.set_resizable(True)
-                #column.set_expand(False)
             column.set_fixed_width(self.columnwidths[column_num])
-            #print(self.columnwidths[column_num])
             treeview.append_column(column)
             self.columns.append(column)
 
@@ -217,7 +208,6 @@ class MainWindow(Gtk.Window):
 
         self.sidebar = Gtk.ListBox()
         self.sidebar_num_rows=0
-        #self.box.pack_start(self.sidebar,True,True,0)
         self.sidebarscrolledwindow.add(self.sidebar)
 
     def add_headerbar(self):
@@ -226,9 +216,9 @@ class MainWindow(Gtk.Window):
         it has to check which version is being used and adjust automatically. In versions earlier than 11
         the headerbar cannot show minimize and maximize buttons by itself. I cannot implement a maximize
         button, but I always maximize a window by slamming it into the top of the screen anyway, so
-        I only implement a minimze button."""
+        I only implement a minimze button.
 
-        """Note: The reason I cannot implement a maximize button is because it is nontrivial to 
+        Note: The reason I cannot implement a maximize button is because it is hard to 
         know whether the window is currently maximized. Usually maximize buttons will also change to
         restore buttons when the window is maximized, but I cannot do that."""
         hb = Gtk.HeaderBar()
@@ -274,7 +264,6 @@ class MainWindow(Gtk.Window):
         self.sidebarbtn.set_has_tooltip(True)
         self.sidebarbtn.set_tooltip_text("Show/hide sidebar")
 
-        #self.setSidebarImage(sidebarbtn)
         self.sidebarbtn.connect('clicked', self.sidebarToggle)
         hb.pack_start(self.sidebarbtn)
 
@@ -282,15 +271,12 @@ class MainWindow(Gtk.Window):
         self.syncButton = Gtk.Button()
         syncIcon = Gio.ThemedIcon(name='gtk-refresh')
         self.syncImage = Gtk.Image.new_from_gicon(syncIcon,Gtk.IconSize.BUTTON)
-        #sync.add(self.syncImage)
         self.syncButton.set_image(self.syncImage)
         self.syncButton.connect('clicked',self.startSync)
         self.syncSpinner = Gtk.Spinner()
-        #sync.set_image(self.syncSpinner)
         self.syncButton.set_has_tooltip(True)
         self.syncButton.set_tooltip_text("Download libraries from ADS.")
         hb.pack_start(self.syncButton)
-
 
         #settingsButton = Gtk.Button()
         #settingsIcon = Gio.ThemedIcon(name='system-run')
@@ -308,14 +294,14 @@ class MainWindow(Gtk.Window):
         downloadButton.set_tooltip_text("Download missing PDFs.")
         hb.pack_start(downloadButton)
 
-        
-        #self.show_all()
 
     def settingsMenu(self,button):
         print('woo')
 
     def download_article(self,article):
         if 'journal' in article and article['journal'] == 'ArXiv e-prints':
+            pdf_url = 'https://arxiv.org/pdf/' + article['eprint']
+        elif PREFER_ARXIV and 'eprint' in article:
             pdf_url = 'https://arxiv.org/pdf/' + article['eprint']
         else:
             pdf_url = ADS_PDF.format(article['bibcode'])
@@ -329,7 +315,6 @@ class MainWindow(Gtk.Window):
             #It also doesn't affect ad revenue because if it works it goes directly to the PDF anyway
             #and a web browser would do the same thing.
             #All of the above is rationalization. This is probably an evil line of code. Sorry.
-
 
             print(r.status_code)
             print(r.headers['Content-type'])
@@ -429,7 +414,6 @@ class MainWindow(Gtk.Window):
         self.bib.setPdfs(article['bibcode'],files)
 
     def setupDone(self):
-        #print('setupdone')
         self.show_all()
     
     def populate_sidebar(self):
@@ -444,7 +428,7 @@ class MainWindow(Gtk.Window):
                 if self.bib.libInfo[r.library_id]['name'] != r.data:
                     r.update_label(self.bib.libInfo[r.library_id]['name'])
                 rows.append(r.library_id)
-                print('updated row {}'.format(r.data))
+                #print('updated row {}'.format(r.data))
         if "None" not in rows:
             sb.add(ListBoxRowWithData("No Filters",'None'))
             self.sidebar_num_rows += 1
@@ -458,7 +442,7 @@ class MainWindow(Gtk.Window):
                 #print('added row {}'.format(libname))
 
         sb.connect('row-activated', self.sb_click)
-        sb.show_all() #Why do I have to do this??
+        sb.show_all() 
     
     def sb_click(self,widget,row):
         self.library_filter_name = row.library_id
@@ -494,7 +478,6 @@ class MainWindow(Gtk.Window):
             self.syncButton.set_sensitive(False)
         # TODO: Make this display the number of queries remaining in a status bar or something.
         #Also unfreeze the bib database editing
-        #Done: Also add new papers (newIds) to listStore <--IMPORTANT
         for paperID in newIds:
             paper = self.bib.bibDatabase[paperID]
             try:
@@ -562,10 +545,12 @@ class MainWindow(Gtk.Window):
         with open('windowprefs.json','w') as prefsfile:
             prefsfile.write(json.dumps({'size':size,
                                        'sb':self.sidebarVisible,
-                                       'colwidths':columnwidths}))
+                                       'colwidths':columnwidths,
+                                       'arxiv':PREFER_ARXIV}))
         Gtk.main_quit()
 
     def idConflictsPopup(self,conflicts):
+        #make a popup that describes the old and new ID codes.
         d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
                           Gtk.ButtonsType.OK,"Warning: ID codes have changed")
 
@@ -577,10 +562,6 @@ class MainWindow(Gtk.Window):
             for key in conflicts:
                 ccfile.write(key + '  ->  ' + conflicts[key]+'\n')
 
-        #make a popup that describes the old and new ID codes.
-
-
-
 class ListBoxRowWithData(Gtk.ListBoxRow):
     def __init__(self, data, lid):
         super(Gtk.ListBoxRow, self).__init__()
@@ -591,6 +572,7 @@ class ListBoxRowWithData(Gtk.ListBoxRow):
     def update_label(self,newlabel):
         self.label.set_text(newlabel)
         self.data = newlabel
+        
 def makeListStoreElement(paper):
         author = authorHandler(paper['author']) #every paper should have an author...
         #Done: Make author list pretty
