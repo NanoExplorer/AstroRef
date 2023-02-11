@@ -37,6 +37,8 @@ test_strings = """
 # @string{October = {October}}
 # @string{November = {November}}
 # @string{December = {December}}"""
+
+
 def BT_PARSER():
     # evilstrings =  [('january', "January"),
     #                 ('february', "February"),
@@ -74,13 +76,17 @@ def BT_PARSER():
 #Don't you agree that the bibtexparser library v1.0.1 is waay better than the old version? /sarcasm
 
 
-
 LETTERS = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j', 'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't', 'u', 'v', 'w', 'x', 'y', 'z']
-#SHORT_MONTHS = {v.lower(): k for k,v in enumerate(calendar.month_abbr)}# Old versions of bibtexparser used this
+SHORT_MONTHS = {v.lower(): k for k,v in enumerate(calendar.month_abbr)}  # Old versions of bibtexparser used this
+SHORT_MONTHS2={v: k for k,v in enumerate(calendar.month_abbr)}
 MONTHS={v: k for k,v in enumerate(calendar.month_name)}
+MONTHS.update(SHORT_MONTHS2)
+MONTHS.update(SHORT_MONTHS)
+print(MONTHS)
 #INV_MONTHS = {v:k for k,v in MONTHS.items()}
 #Short months and inv months are only needed if you want to clean up bib files where some months are stored
 #as month = {jan} instead of month = {January}
+
 
 class Bibliography():
     def __init__(self):
@@ -94,10 +100,10 @@ class Bibliography():
             #except *technically* librarypapers, since we can build that from master.bib,
             #but this is easier, and I don't think the missing feature will be bothersome.
             print('performing first-time setup')
-            self.libInfo = {} # eventually structure will be {libraryID:{date:datemodified,num:#,name:''}}
-            self.libPapers = {}# eventually structure will be {lid: [bibcodes]}
-            self.bibDatabase = {}#Structure will be {bibcode:bibtexinformation}
-            self.idCodes = {}#Structure will be {idcode:bibcode}
+            self.libInfo = {}  # eventually structure will be {libraryID:{date:datemodified,num:#,name:''}}
+            self.libPapers = {}  # eventually structure will be {lid: [bibcodes]}
+            self.bibDatabase = {}  # Structure will be {bibcode:bibtexinformation}
+            self.idCodes = {}  # Structure will be {idcode:bibcode}
             #self.adsRefresh()
             self.firstRun = True
 
@@ -105,6 +111,7 @@ class Bibliography():
             print('loading cached data...')
             self.loadFiles()
             self.firstRun = False
+    
     def loadFiles(self):
         with open('libraryInfo.json', 'r') as infofile:
             self.libInfo = json.loads(infofile.read())
@@ -117,10 +124,10 @@ class Bibliography():
     def saveFiles(self):
         with open('libraryInfo.json','w') as infofile:
             infofile.write(json.dumps(self.libInfo,sort_keys=True,
-                                  indent=4, separators=(',', ': ')))
+                                      indent=4, separators=(',', ': ')))
         with open('libraryPapers.json','w') as papersfile:
             papersfile.write(json.dumps(self.libPapers,sort_keys=True,
-                                  indent=4, separators=(',', ': ')))
+                                        indent=4, separators=(',', ': ')))
         with open('master.bib','w') as bibfile:
             bibfile.write(unBibtexDict(self.bibDatabase))
         #with open('other.json','w') as take2file:
@@ -207,9 +214,7 @@ class Bibliography():
         lib = q.execute()
         self.updateRateLimits(q)
 
-        newPapers = lib.bibcodes[:] #make a copy of lib.bibcodes so we don't modify it below
-
-
+        newPapers = lib.bibcodes[:]  # make a copy of lib.bibcodes so we don't modify it below
 
         #Note: although those two for loops appear to do the same thing, they are not totally
         #redundant to each other. Because you can have papers that are in bibDatabase but not 
@@ -229,27 +234,29 @@ class Bibliography():
             except ValueError:
                 pass
 
-
         self.libPapers[lid] = lib.bibcodes
         self.libInfo[lid] = {'date':lib.metadata['date_last_modified'],
                              'num':lib.metadata['num_documents'],
                              'name':lib.metadata['name']
-                            }
+                             }
 
         self.lastLibResponse = q
         return newPapers
+
     def updateRateLimits(self,q):
         try:
             thisQLeft = int(q.response.response.headers['X-RateLimit-Remaining'])
             self._updateRateLimits(thisQLeft)
         except KeyError:
             print("I think they removed rate limits from some of the api endpoints?")
+    
     def _updateRateLimits(self,thisQLeft):
         if thisQLeft < self.qRemaining:
             self.qRemaining = thisQLeft
         if self.qRemaining <= 1:
             self.exhausted = True
         print("queries remaining: {}".format(self.qRemaining))
+    
     def downloadPaperInfo(self,papers):
         #download info on all the papers in the list of papers.
         #adds it to the self.bibDatabase 
@@ -277,7 +284,6 @@ class Bibliography():
         else:
             print("Unable to get rate limits")
 
-
         newBibDatabase = bibtexparser.loads(test_strings+bibtex,parser=BT_PARSER()).entries
         self.lastBibResponse = eq
         #self.lastBigResponse = bq
@@ -290,7 +296,6 @@ class Bibliography():
             print("***FINISHED***")
             raise ADSMalfunctionError
 
-
         for paper in newBibDatabase:
             paper['bibcode'] = paper['ID'] #Make sure to keep the bibcode, since it used to 
             #only be stored under the ID of the paper, and we want to change the ID.
@@ -301,7 +306,6 @@ class Bibliography():
                 print("Paper {} does not have an abstract.".format(paper['bibcode']))
             paper['title']=paper['title'].strip('{}') #don't you just love the new bibtexparser library.
             firstAuthor=self.getFirstAuthor(paper['author'])
-
 
             pid = firstAuthor + paper['year']
             if pid in self.idCodes: #This paper will conflict ID wise with another paper, so gotta add letter
@@ -413,13 +417,16 @@ class Bibliography():
     def needsPdf(self,pid):
         paper = self.bibDatabase[pid]
         return ('pdf' not in paper) and (('skip' not in paper) or paper['skip'] == 'false')
+    
     def setSkipPdf(self,pid,toSkip=True):
         if toSkip:
             self.bibDatabase[pid]['skip']='true'
         else:
             self.bibDatabase[pid]['skip']='false'
+    
     def hasPdf(self,pid):
         return 'pdf' in self.bibDatabase[pid] 
+    
     def setPdfs(self,pid,pdfloc):
         """Accepts strings or lists of strings as pid and pdfloc"""
         """Really this adds pdfs instead of setting them."""
@@ -439,6 +446,7 @@ class Bibliography():
                 paper['pdf'] = pdfloc.strip(',')
             else:
                 paper['pdf'] = paper['pdf'] + ',' + pdfloc.strip(',')
+    
     def setDefaultPdf(self,pid,index):
         self.bibDatabase[pid]['default_pdf'] = index
 
@@ -449,6 +457,8 @@ class Bibliography():
             return self.bibDatabase[pid]['pdf'].split(',')[int(self.bibDatabase[pid]['default_pdf'])]
         except KeyError:
             return self.bibDatabase[pid]['pdf'].split(',')[0]
+
+
 """
 This function is a wrapper for the bibtexparser library
 """
@@ -469,6 +479,7 @@ def bibtexDict(btexstr):
 
     return data,idc
 
+
 def unBibtexDict(btexdict):
     paperslist = []
     for paper in btexdict:
@@ -479,6 +490,7 @@ def unBibtexDict(btexdict):
     #print("Dumping bibtex string:")
     #print(string)
     return string
+
 
 def removeSpecialCharacters(author):
     #This will need to remove things like {\'a} and 
@@ -498,8 +510,8 @@ def removeSpecialCharacters(author):
             unAccName += char
     return unAccName
 
+
 def notSpecial(char):
     isUpper = ord(char) >= ord('a') and ord(char) <= ord('z')
     isLower = ord(char) >= ord('A') and ord(char) <= ord('Z')
     return (isUpper or isLower)
-
