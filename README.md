@@ -15,13 +15,15 @@ AstroRef is written in Python 3. Its dependencies are as follows:
 * requests (but ads depends on it too, so you'll get it automatically when you install ads.)
 * pylatexenc
 
-The hard part is getting gi / PyGObject installed. I can't help you with that because it seems like everyone has a different experience. If you don't want to run this program from a virtualenv like I do, it'll probably be a lot easier.
-
-The other libraries can simply be installed with pip or your distro's package manager.
-
 Make sure to set up the python ads library by making the file `~/.ads/dev_key` and pasting your ADS api key in there.
 
-I think that's it for installation. Let me know if that doesn't cover everything.
+I recommend installing in a new Conda environment with the following:
+```
+conda create -n referencemanager
+conda activate referencemanager
+conda install -c conda-forge pygobject requests bibtexparser pylatexenc ads gtk3 librsvg
+```
+You will, however, need to remember to activate this env when launching the program. 
 
 ## Usage
 
@@ -37,7 +39,8 @@ AstroRef natively manages a .bib file that is kept in the same directory as ui.p
 
 Once your LaTeX document is using the bib file managed by AstroRef, you can simply highlight a paper in AstroRef and hit CTRL+C to copy the citation code of the paper to your clipboard. You can also select multiple papers (by CTRL-click or SHIFT-click) and copy all of their citation codes in the proper format!
 
-*if you do choose to make a symbolic link to the BibTex file, you will need to be careful when you add multiple papers written by the same author in the same year, because that can change the citation codes. I may be able to fix this issue with active bib file management. AstroRef will warn you when this happens.
+* if you do choose to make a symbolic link to the BibTex file, you will need to be careful when you add multiple papers written by the same author in the same year, because that can change the citation codes. I may be able to fix this issue with active bib file management. AstroRef will warn you when this happens.
+
 
 ### PDF downloading
 AstroRef was built by a student at Cornell University, and as such the pdf downloader assumes you have an account with the Cornell library. If you would like to use this software at a different university or library provider, open an issue here, or edit the `DOI_PROVIDER` line at the top of `ui.py` to point to your library's doi proxy. However, every university library is a little bit different, and I can't know exactly how your library works without having an account with them. I'm happy to work with you to expand this program's capabilities.
@@ -48,4 +51,4 @@ If you want to copy the paper's bibcode to the clipboard, you can use CTRL+X. Th
 
 ## Pleas for help
 
-If anyone knows a good way to render LaTeX equations or HTML formatting in a GTK application, let me know! I would really like to improve this app by allowing equations or formatting in the comments and/or abstracts.
+If anyone knows a good way to render LaTeX equations or HTML formatting in a GTK application, let me know! I would really like to improve this app by allowing equations or formatting in the comments and/or abstracts. 
