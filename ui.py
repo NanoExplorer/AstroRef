@@ -259,7 +259,7 @@ class MainWindow(Gtk.Window):
                 hb.set_decoration_layout(":minimize,maximize,close")
         hb.props.title = "AstroRef"
         self.set_titlebar(hb)
-        self.set_icon_from_file('test4.svg')
+        self.set_icon_from_file('icon.svg')
 
 
         self.sidebarbtn = Gtk.Button()
