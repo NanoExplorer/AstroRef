@@ -1,3 +1,4 @@
+#!/bin/python
 #Needs to be able to display and edit the records in the Bibliography as a user interface.
 #Good references:
 #https://lazka.github.io/pgi-docs/#Gtk-3.0/classes/ListBoxRow.html#Gtk.ListBoxRow
@@ -20,8 +21,7 @@ import tutorial as setup
 import subprocess
 import webbrowser
 import ads
-import traceback
-from errors import InternalServerError, APILimitError
+from errors import InternalServerError, APILimitError, UnauthorizedError
 import requests
 from pylatexenc.latex2text import LatexNodes2Text
 ID_CHANGED_MESSAGE = """Unfortunately, due to the way this program handles paper names,
@@ -38,7 +38,7 @@ Below is a list of all changed names, with the old name on the left and the new 
 right. These names are not ordered in any order, so if b -> c and c -> d, you'll want to 
 rename c to d before b to c, if you're using your editor's find and replace tool.
 """
-
+import platform
 #Todo:
 #maybe remove deleted libraries from sidebar? That's more of a management.py problem 
 
@@ -156,7 +156,10 @@ class MainWindow(Gtk.Window):
     def treeview_open(self,widget,path,column):
         pdf_file = self.bib.getDefaultPdf(self.sorted_and_filtered[path.get_indices()][7])
         if pdf_file:
-            subprocess.call(('xdg-open',pdf_file))
+            if platform.system()=="Darwin":
+                subprocess.call(('open',pdf_file))
+            else:
+                subprocess.call(('xdg-open',pdf_file))
 
     """def treeview_rtclick(self,widget,event):
         if event.button == 3:
@@ -250,17 +253,19 @@ class MainWindow(Gtk.Window):
             maximize.connect('clicked',self.maximizeHandler)
             hb.pack_end(maximize)"""
         else:
-            hb.set_decoration_layout(":minimize,maximize,close")
+            if platform.system()=="Darwin":
+                hb.set_decoration_layout("close,minimize,maximize:")
+            else:
+                hb.set_decoration_layout(":minimize,maximize,close")
         hb.props.title = "AstroRef"
         self.set_titlebar(hb)
         self.set_icon_from_file('test4.svg')
 
 
         self.sidebarbtn = Gtk.Button()
-        sidebarIcon = Gio.ThemedIcon(name='sidebar-hide-symbolic')
+        sidebarIcon = Gio.ThemedIcon(name='sidebar-show-symbolic')
         self.hideSidebarImage = Gtk.Image.new_from_gicon(sidebarIcon,Gtk.IconSize.BUTTON)
-        showSidebarIcon = Gio.ThemedIcon(name='sidebar-show-symbolic')
-        self.showSidebarImage = Gtk.Image.new_from_gicon(showSidebarIcon,Gtk.IconSize.BUTTON)
+        self.showSidebarImage = Gtk.Image.new_from_gicon(sidebarIcon,Gtk.IconSize.BUTTON)
         self.sidebarbtn.set_has_tooltip(True)
         self.sidebarbtn.set_tooltip_text("Show/hide sidebar")
 
@@ -269,7 +274,7 @@ class MainWindow(Gtk.Window):
 
 
         self.syncButton = Gtk.Button()
-        syncIcon = Gio.ThemedIcon(name='gtk-refresh')
+        syncIcon = Gio.ThemedIcon(name='view-refresh-symbolic')
         self.syncImage = Gtk.Image.new_from_gicon(syncIcon,Gtk.IconSize.BUTTON)
         self.syncButton.set_image(self.syncImage)
         self.syncButton.connect('clicked',self.startSync)
@@ -314,11 +319,11 @@ class MainWindow(Gtk.Window):
             #and usually multiple times on phones/browsers.)
             #It also doesn't affect ad revenue because if it works it goes directly to the PDF anyway
             #and a web browser would do the same thing.
-            #All of the above is rationalization. This is probably an evil line of code. Sorry.
+            #All of the above is rationalization. This is probably an evil line of code. Sorrynotsorry
 
             print(r.status_code)
             print(r.headers['Content-type'])
-            if r.headers['Content-type'] == 'application/pdf' and r.status_code==200:
+            if 'application/pdf' in r.headers['Content-type'] and r.status_code==200:
                 print('yay! A PDF file!')
                 return ('pdf',r.content)
             #elif r.status_code == 403:
@@ -511,6 +516,13 @@ class MainWindow(Gtk.Window):
             GLib.idle_add(self.errorMessage,"API limit reached",
                           "You have reached the maximum number of API requests allowed per day. Try again tomorrow.")
             GLib.idle_add(self.finishSync,[])
+        except UnauthorizedError:
+            GLib.idle_add(self.errorMessage,"ADS Key Missing or Invalid",
+                          "Make sure to follow the instructions for correctly adding an ADS API key from the ADS python library!")
+            GLib.idle_add(self.finishSync,[])            
+        except:
+            print("Encountered misc error. Handling \"Gracefully\":")
+            traceback.print_exc()
 
     def errorMessage(self,title,text):
         d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
