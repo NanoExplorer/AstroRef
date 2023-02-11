@@ -43,22 +43,38 @@ Here's a sample LibsResponse.response.headers:
 'Access-Control-Allow-Headers': 'Accept, Authorization, Content-Type, Orcid-Authorization, X-BB-Api-Client-Version, X-CSRFToken'}
 
 """
-from errors import InternalServerError
+from errors import InternalServerError, UnauthorizedError
 
 class LibsResponse():
     def __init__(self,libresponse):
         self.response = libresponse
         libJson = self.response.text
-        data = json.loads(libJson)
+        try:            
+            data = json.loads(libJson)
+        except ValueError:
+            print("This is some new kind of internal server error (part-1)")
+            print("DEBUG: printing libJson")
+            print(libJson)
+            raise InternalServerError()
         #print(data)
         if 'message' in data and data['message'] == 'Internal Server Error':
             print(data)
             raise InternalServerError()
-        self.libraries = data['libraries']
+        if 'error' in data:
+            if data['error'] == "Unauthorized":
+                print("Make sure to initialize the ADS python library by following their instructions!")
+                raise UnauthorizedError()
+            else:
+                raise InternalServerError()
+        try:
+            self.libraries = data['libraries']
+        except KeyError:
+            print(data)
+            raise
         self.libids = dict()
         for library in self.libraries:
             self.libids[library['name']] = library['id']
-    def getID(name):
+    def getID(self,name):
         return self.libids[name]
     def get_remaining_queries(self):
         return self.response.headers['X-RateLimit-Remaining']
@@ -78,8 +94,14 @@ class LibResponse():
     def __init__(self,libresponse):
         self.response = libresponse
         libJson = self.response.text
-        data = json.loads(libJson)
-        if 'message' in data and data['message'] == 'Internal Server Error':
+        try:
+            data = json.loads(libJson)
+        except ValueError:
+            print("This is some new kind of internal server error (part-2)")
+            print("DEBUG: printing libJson")
+            print(libJson)
+        if ('message' in data and data['message'] == 'Internal Server Error'
+              or 'documents' not in data or 'metadata' not in data):
             print(data)
             raise InternalServerError()
 
