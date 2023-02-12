@@ -25,48 +25,10 @@ test_strings = """
 
 """
 #May is missing because its abbreviation is the same as the month name.
-# other_test_strings = """@string{January = {January}}
-# @string{February = {February}}
-# @string{March = {March}}
-# @string{April = {April}}
-# @string{May = {May}}
-# @string{June = {June}}
-# @string{July = {July}}
-# @string{August = {August}}
-# @string{September = {September}}
-# @string{October = {October}}
-# @string{November = {November}}
-# @string{December = {December}}"""
 
 
-def BT_PARSER():
-    # evilstrings =  [('january', "January"),
-    #                 ('february', "February"),
-    #                 ('march',"March"),
-    #                 ('april',"April"),
-    #                 ('may',"May"),
-    #                 ('june',"June"),
-    #                 ('july',"July"),
-    #                 ('august',"August"),
-    #                 ('september',"September"),
-    #                 ('october',"October"),
-    #                 ('november',"November"),
-    #                 ('december',"December"),
-    #                 ('January', "January"),
-    #                 ('February', "February"),
-    #                 ('March',"March"),
-    #                 ('April',"April"),
-    #                 ('May',"May"),
-    #                 ('June',"June"),
-    #                 ('July',"July"),
-    #                 ('August',"August"),
-    #                 ('September',"September"),
-    #                 ('October',"October"),
-    #                 ('November',"November"),
-    #                 ('December',"December")]
-
+def bibtex_parser_factory():
     btpsr= bibtexparser.bparser.BibTexParser(common_strings=True)
-    #btpsr.bib_database.strings.update(evilstrings)
     return btpsr
 #this is a full-on function because I need a new one every time, otherwise things will go horribly wrong.
 #And isn't it great that I have to define my own month strings otherwise the program will crash when I 
@@ -284,7 +246,7 @@ class Bibliography():
         else:
             print("Unable to get rate limits")
 
-        newBibDatabase = bibtexparser.loads(test_strings+bibtex,parser=BT_PARSER()).entries
+        newBibDatabase = bibtexparser.loads(test_strings+bibtex,parser=bibtex_parser_factory()).entries
         self.lastBibResponse = eq
         #self.lastBigResponse = bq
         #Now somehow I need to add all the abstracts to the correct papers in the bib structure
@@ -463,7 +425,7 @@ class Bibliography():
 This function is a wrapper for the bibtexparser library
 """
 def bibtexDict(btexstr):
-    raw = bibtexparser.loads(test_strings+btexstr,parser=BT_PARSER()).entries
+    raw = bibtexparser.loads(test_strings+btexstr,parser=bibtex_parser_factory()).entries
     data = {}
     idc={}
     for paper in raw:
