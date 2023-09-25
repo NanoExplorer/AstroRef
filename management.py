@@ -236,8 +236,7 @@ class Bibliography():
         #self.updateRateLimits(bq)
         #abstracts = bq.response.abstracts
         eq = ExportQuery(papers)
-        eq.format="bibtexabs"
-        #SICK HACK COMPLETE!
+        eq.format="bibtex"
 
         bibtex = eq.execute()
         rate = eq.response.get_ratelimits()['remaining']
@@ -251,11 +250,18 @@ class Bibliography():
         #self.lastBigResponse = bq
         #Now somehow I need to add all the abstracts to the correct papers in the bib structure
         if len(newBibDatabase)!=len(papers):
+            print("Paper list and bibtex list do not match!")
+            print("Last time this was because *someone* had unbalanced braces in their abstract")
+            print("But now I'm ignoring abstracts because of this, so who knows why this happened this time")
             print("***DUMPING PAPERS***")
             print(papers)
             print("***DUMPING BIBTEX***")
+            for bibtex_entry in newBibDatabase:
+                print(bibtex_entry)
+                print()
             print(bibtex)
             print("***FINISHED***")
+
             raise ADSMalfunctionError
 
         for paper in newBibDatabase:
@@ -265,7 +271,7 @@ class Bibliography():
             try:
                 paper['abstract'] = paper['abstract'][1:-1]
             except KeyError:
-                print("Paper {} does not have an abstract.".format(paper['bibcode']))
+                print("Paper {} does not have an abstract. Because we are skipping abstracts because they can be poisonous to the parser.........".format(paper['bibcode']))
             paper['title']=paper['title'].strip('{}') #don't you just love the new bibtexparser library.
             firstAuthor=self.getFirstAuthor(paper['author'])
 
@@ -349,6 +355,7 @@ class Bibliography():
                 paper['ID'] = pid
                 self.bibDatabase[paper['bibcode']] = paper
                 self.idCodes[pid] = paper['bibcode']
+
         return namesChanged
     
     def getFirstAuthor(self,authors):
