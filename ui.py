@@ -245,15 +245,23 @@ class MainWindow(Gtk.ApplicationWindow):
             menu.attach_to_widget(treeiter)
             menu.popup()"""
 
+    def search_tree(self, model, column, key, tree_iter, search_data=None):
+        author, title = model.get(tree_iter, 0, 4)  # 0=author and 4=title columns
+        if key.lower() in (author+title).lower():
+            return False
+        return True
+
     def make_treeview(self):
         tvsw = Gtk.ScrolledWindow()
-        tvsw.set_policy(Gtk.PolicyType.AUTOMATIC,Gtk.PolicyType.AUTOMATIC)
-        self.rbox.pack_start(tvsw,True,True,0)
+        tvsw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
+        self.rbox.pack_start(tvsw, True, True, 0)
         treeview = Gtk.TreeView(model = self.sorted_and_filtered)
         treeview.connect("key-press-event", self.treeview_copy)
         treeview.set_activate_on_single_click(False)
         treeview.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
-        treeview.connect("row-activated",self.treeview_open)
+        treeview.connect("row-activated", self.treeview_open)
+        treeview.set_search_equal_func(self.search_tree)
+
         #treeview.connect("button-press-event",self.treeview_rtclick)
         tvsw.add(treeview)
         self.columns = []
@@ -277,12 +285,12 @@ class MainWindow(Gtk.ApplicationWindow):
 
     def make_sidebar(self):
         self.sidebarscrolledwindow = Gtk.ScrolledWindow()
-        self.sidebarscrolledwindow.set_size_request(300,400)
+        self.sidebarscrolledwindow.set_size_request(300, 400)
         self.sidebarscrolledwindow.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
-        self.box.pack_start(self.sidebarscrolledwindow,False,False,0)
+        self.box.pack_start(self.sidebarscrolledwindow, False, False, 0)
 
         self.sidebar = Gtk.ListBox()
-        self.sidebar_num_rows=0
+        self.sidebar_num_rows = 0
         self.sidebarscrolledwindow.add(self.sidebar)
 
     def add_headerbar(self):
@@ -306,9 +314,9 @@ class MainWindow(Gtk.ApplicationWindow):
 
             minimize = Gtk.Button()
             minimizeIcon = Gio.ThemedIcon(name='window-minimize-symbolic')
-            minimizeImage = Gtk.Image.new_from_gicon(minimizeIcon,Gtk.IconSize.BUTTON)
+            minimizeImage = Gtk.Image.new_from_gicon(minimizeIcon, Gtk.IconSize.BUTTON)
             minimize.add(minimizeImage)
-            minimize.connect('clicked',lambda x: self.iconify())
+            minimize.connect('clicked', lambda x: self.iconify())
             hb.pack_end(minimize)
 
             #Also this version of GTK is too old to let me know if the window is maximized.
@@ -325,7 +333,7 @@ class MainWindow(Gtk.ApplicationWindow):
             maximize.connect('clicked',self.maximizeHandler)
             hb.pack_end(maximize)"""
         else:
-            if platform.system()=="Darwin":
+            if platform.system() == "Darwin":
                 hb.set_decoration_layout("close,minimize,maximize:")
             else:
                 hb.set_decoration_layout(":minimize,maximize,close")
@@ -333,23 +341,21 @@ class MainWindow(Gtk.ApplicationWindow):
         self.set_titlebar(hb)
         self.set_icon_from_file('icon.svg')
 
-
         self.sidebarbtn = Gtk.Button()
         sidebarIcon = Gio.ThemedIcon(name='sidebar-show-symbolic')
-        self.hideSidebarImage = Gtk.Image.new_from_gicon(sidebarIcon,Gtk.IconSize.BUTTON)
-        self.showSidebarImage = Gtk.Image.new_from_gicon(sidebarIcon,Gtk.IconSize.BUTTON)
+        self.hideSidebarImage = Gtk.Image.new_from_gicon(sidebarIcon, Gtk.IconSize.BUTTON)
+        self.showSidebarImage = Gtk.Image.new_from_gicon(sidebarIcon, Gtk.IconSize.BUTTON)
         self.sidebarbtn.set_has_tooltip(True)
         self.sidebarbtn.set_tooltip_text("Show/hide sidebar")
 
         self.sidebarbtn.connect('clicked', self.sidebarToggle)
         hb.pack_start(self.sidebarbtn)
 
-
         self.syncButton = Gtk.Button()
         syncIcon = Gio.ThemedIcon(name='view-refresh-symbolic')
-        self.syncImage = Gtk.Image.new_from_gicon(syncIcon,Gtk.IconSize.BUTTON)
+        self.syncImage = Gtk.Image.new_from_gicon(syncIcon, Gtk.IconSize.BUTTON)
         self.syncButton.set_image(self.syncImage)
-        self.syncButton.connect('clicked',self.startSync)
+        self.syncButton.connect('clicked', self.startSync)
         self.syncSpinner = Gtk.Spinner()
         self.syncButton.set_has_tooltip(True)
         self.syncButton.set_tooltip_text("Download libraries from ADS.")
@@ -364,18 +370,17 @@ class MainWindow(Gtk.ApplicationWindow):
 
         downloadButton = Gtk.Button()
         downloadIcon = Gio.ThemedIcon(name='document-save')
-        downloadImage = Gtk.Image.new_from_gicon(downloadIcon,Gtk.IconSize.BUTTON)
+        downloadImage = Gtk.Image.new_from_gicon(downloadIcon, Gtk.IconSize.BUTTON)
         downloadButton.set_image(downloadImage)
-        downloadButton.connect('clicked',self.downloadPdfs)
+        downloadButton.connect('clicked', self.downloadPdfs)
         downloadButton.set_has_tooltip(True)
         downloadButton.set_tooltip_text("Download missing PDFs.")
         hb.pack_start(downloadButton)
 
-
-    def settingsMenu(self,button):
+    def settingsMenu(self, button):
         print('woo')
 
-    def download_article(self,article):
+    def download_article(self, article):
         if 'journal' in article and article['journal'] == 'ArXiv e-prints':
             pdf_url = 'https://arxiv.org/pdf/' + article['eprint']
         elif PREFER_ARXIV and 'eprint' in article:
@@ -384,7 +389,7 @@ class MainWindow(Gtk.ApplicationWindow):
             pdf_url = ADS_PDF.format(article['bibcode'])
         try:
             print("requesting {}".format(pdf_url))
-            r = requests.get(pdf_url,timeout=20,headers={'User-Agent':'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.97 Safari/537.36 Vivaldi/1.94.1008.40'})
+            r = requests.get(pdf_url, timeout=20, headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.97 Safari/537.36 Vivaldi/1.94.1008.40'})
             #The user agent gets around people who try to filter out bots, but this 
             #program is generating no more traffic than I would with a web browser.
             #(and probably less, given that I download things exactly once with this program
@@ -395,27 +400,28 @@ class MainWindow(Gtk.ApplicationWindow):
 
             print(r.status_code)
             print(r.headers['Content-type'])
-            if 'application/pdf' in r.headers['Content-type'] and r.status_code==200:
+            if 'application/pdf' in r.headers['Content-type'] and r.status_code == 200:
                 print('yay! A PDF file!')
-                return ('pdf',r.content)
+                return ('pdf', r.content)
             #elif r.status_code == 403:
             #    return('url',pdf_url)
         except:
             traceback.print_exc()
         try:
-            return('url',DOI_PROVIDER + article['doi'])
+            return ('url', DOI_PROVIDER + article['doi'])
         except:
             traceback.print_exc()
-            return('?',None)
+            return ('?', None)
 
-    def downloadPdfs(self,button):
+    def downloadPdfs(self, button):
         if self.syncing:
-            d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
-                                  Gtk.ButtonsType.OK,"Cannot download pdfs while syncing")
+            d = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+                                  Gtk.ButtonsType.OK, "Cannot download pdfs while syncing")
             d.run()
             d.destroy()
             return
-        d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
+        d = Gtk.MessageDialog(
+                              self,0,Gtk.MessageType.INFO,
                           Gtk.ButtonsType.OK,"Instructions to Download PDFs")
 
         d.format_secondary_text("This program will launch your default browser to fetch the articles that are missing. Download each PDF and save it in the 'add_pdf' folder in the directory of this program. This program will then move it to the 'library' folder organized by first author.")
@@ -614,7 +620,7 @@ class MainWindow(Gtk.ApplicationWindow):
             self.sidebar.hide()
             self.sidebarscrolledwindow.hide()
 
-    def sidebarToggle(self,button):
+    def sidebarToggle(self, button):
         if self.sidebarVisible:
             self.sidebarVisible = False
         else:
@@ -622,29 +628,30 @@ class MainWindow(Gtk.ApplicationWindow):
 
         self.setSidebarStuff(button)
 
-    def on_quit(self,*args):
+    def on_quit(self, *args):
         print('exiting...')
         size = self.get_size()
         columnwidths = [col.get_fixed_width() for col in self.columns]
         with open('windowprefs.json','w') as prefsfile:
-            prefsfile.write(json.dumps({'size':size,
-                                       'sb':self.sidebarVisible,
-                                       'colwidths':columnwidths,
-                                       'arxiv':PREFER_ARXIV}))
+            prefsfile.write(json.dumps({'size': size,
+                                        'sb': self.sidebarVisible,
+                                        'colwidths': columnwidths,
+                                        'arxiv': PREFER_ARXIV}))
         #Gtk.main_quit()
 
-    def idConflictsPopup(self,conflicts):
+    def idConflictsPopup(self, conflicts):
         #make a popup that describes the old and new ID codes.
-        d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
-                          Gtk.ButtonsType.OK,"Warning: ID codes have changed")
+        d = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
+                              Gtk.ButtonsType.OK, "Warning: ID codes have changed")
 
         d.format_secondary_text("Check the file ChangedCodes.txt in this program's directory for more information and a detailed list of changes. If you have not written any .tex files using the master bib file provided by this program, you can ignore this message.")
         d.run()
         d.destroy()
-        with open('ChangedCodes.txt','w') as ccfile:
+        with open('ChangedCodes.txt', 'w') as ccfile:
             ccfile.write(ID_CHANGED_MESSAGE)
             for key in conflicts:
                 ccfile.write(key + '  ->  ' + conflicts[key]+'\n')
+
 
 class ListBoxRowWithData(Gtk.ListBoxRow):
     def __init__(self, data, lid):
@@ -653,52 +660,54 @@ class ListBoxRowWithData(Gtk.ListBoxRow):
         self.data = data
         self.label = Gtk.Label(data)
         self.add(self.label)
-    def update_label(self,newlabel):
+
+    def update_label(self, newlabel):
         self.label.set_text(newlabel)
         self.data = newlabel
         
-def makeListStoreElement(paper):
-        author = authorHandler(paper['author']) #every paper should have an author...
-        #Done: Make author list pretty
-        title = paper['title'].replace('\n',' ') #and title
-        year = int(paper['year']) # and year...
-        bibcode = paper['bibcode'] #every paper DOES have a bibcode
-        ID = paper['ID'] #and ID
-        try:
-            if paper['journal'][0] == '\\':
-                journal = paper['journal'][1:].upper()
-            else:
-                journal = paper['journal']
-        except KeyError:
-            if 'series' in paper:
-                if paper['series'][0] == '\\':
-                    journal = paper['series'][1:].upper()
-                else:
-                    journal = paper['series']
-            else:
-                journal = paper['bibcode'][4:9].strip('.')
-        try: 
-            month = paper['month']
-        except KeyError:
-            month = ''
-        try:
-            volume = int(paper['volume'])
-        except KeyError:
-            volume = None
-        try:
-            pages = paper['pages']
-        except KeyError:
-            pages = ''
 
-        return [author,
-                journal,
-                month,
-                year,
-                title,
-                volume,
-                pages,
-                bibcode,
-                ID]
+def makeListStoreElement(paper):
+    author = authorHandler(paper['author'])  #every paper should have an author...
+    #Done: Make author list pretty
+    title = paper['title'].replace('\n', ' ')  #and title
+    year = int(paper['year'])  # and year...
+    bibcode = paper['bibcode']  #every paper DOES have a bibcode
+    ID = paper['ID']  #and ID
+    try:
+        if paper['journal'][0] == '\\':
+            journal = paper['journal'][1:].upper()
+        else:
+            journal = paper['journal']
+    except KeyError:
+        if 'series' in paper:
+            if paper['series'][0] == '\\':
+                journal = paper['series'][1:].upper()
+            else:
+                journal = paper['series']
+        else:
+            journal = paper['bibcode'][4:9].strip('.')
+    try: 
+        month = paper['month']
+    except KeyError:
+        month = ''
+    try:
+        volume = int(paper['volume'])
+    except KeyError:
+        volume = None
+    try:
+        pages = paper['pages']
+    except KeyError:
+        pages = ''
+
+    return [author,
+            journal,
+            month,
+            year,
+            title,
+            volume,
+            pages,
+            bibcode,
+            ID]
 
 
 def authorHandler(authors):
