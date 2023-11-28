@@ -32,7 +32,7 @@ Once you have created a library (or a few libraries) on the new ADS, open AstroR
 
 Once you have downloaded some PDFs, you can simply double click on a paper in AstroRef to launch the pdf file in your default pdf viewer. 
 
-By default AstroRef shows all the papers from all your ADS libraries. You can filter the interface by library by selecting a library in the sidebar.
+By default AstroRef shows all the papers from all your ADS libraries. You can filter the interface by library by selecting a library in the sidebar. CTRL-F will allow you to search for keywords in the author list and title. Use the up and down arrow keys to jump to the next/previous match.
 
 ### BibTex integration
 AstroRef natively manages a .bib file that is kept in the same directory as ui.py. If you want, you can use this .bib file as the bibliography file for a LaTeX document. I hope to add functionality in the future to have this program actively manage your .bib files, but for now you can just make a symbolic link* from your LaTeX working directory to master.bib, or manually copy master.bib from the program directory to your LaTeX directory. 
