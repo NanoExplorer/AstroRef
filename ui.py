@@ -500,8 +500,11 @@ class MainWindow(Gtk.ApplicationWindow):
         self.show_all()
     
     def populate_sidebar(self):
+        """ Called on start of app, and also on finish of sync."""
         sb = self.sidebar
         rows = []
+
+        # Get existing rows if any
         for i in range(self.sidebar_num_rows):
             #Can't find a method for just getting all rows...
             r = sb.get_row_at_index(i)
@@ -512,10 +515,15 @@ class MainWindow(Gtk.ApplicationWindow):
                     r.update_label(self.bib.libInfo[r.library_id]['name'])
                 rows.append(r.library_id)
                 #print('updated row {}'.format(r.data))
+
+        # Add default row
         if "None" not in rows:
             sb.add(ListBoxRowWithData("No Filters",'None'))
             self.sidebar_num_rows += 1
-        for library in self.bib.libInfo:
+
+        sortedlibs = sorted(self.bib.libInfo, key=lambda item: self.bib.libInfo[item]['name'].lower())
+        # Add all libraries if they aren't already there
+        for library in sortedlibs:
             if library not in rows:
                 libname = self.bib.libInfo[library]['name']
                 r = ListBoxRowWithData(libname,library)
