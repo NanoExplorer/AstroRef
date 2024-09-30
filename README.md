@@ -45,7 +45,9 @@ Once your LaTeX document is using the bib file managed by AstroRef, you can simp
 
 
 ### PDF downloading
-AstroRef was built by a student at Cornell University, and as such the pdf downloader assumes you have an account with the Cornell library. If you would like to use this software at a different university or library provider, open an issue here, or edit the `DOI_PROVIDER` line at the top of `ui.py` to point to your library's doi proxy. However, every university library is a little bit different, and I can't know exactly how your library works without having an account with them. I'm happy to work with you to expand this program's capabilities.
+I built AstroRef while I was a student at Cornell University, and as such the pdf downloader assumes you have an account with the Cornell library. If you would like to use this software at a different university or library provider, open an issue here, or edit the `DOI_PROVIDER` line at the top of `ui.py` to point to your library's doi proxy. However, every university library is a little bit different, and I can't know exactly how your library works without having an account with them. I'm happy to work with you to expand this program's capabilities.
+
+Alternatively, you can set `PREFER_ARXIV` to `True` at the top of `ui.py` to retrieve papers from the ArXiv if they exist there.
 
 ### Other features
 If you want to copy the paper's bibcode to the clipboard, you can use CTRL+X. This is useful (for example) if you want to use ADS to search through a paper's references.
