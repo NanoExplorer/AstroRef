@@ -1,13 +1,13 @@
 #!/bin/python
-#Needs to be able to display and edit the records in the Bibliography as a user interface.
-#Good references:
-#https://lazka.github.io/pgi-docs/#Gtk-3.0/classes/ListBoxRow.html#Gtk.ListBoxRow
-#http://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html?highlight=scroll
+# Needs to be able to display and edit the records in the Bibliography as a user interface.
+# Good references:
+# https://lazka.github.io/pgi-docs/#Gtk-3.0/classes/ListBoxRow.html#Gtk.ListBoxRow
+# http://python-gtk-3-tutorial.readthedocs.io/en/latest/layout.html?highlight=scroll
 #
 
-#it feels 'wrong' but I think the best way to manage everything is to simply call the bibliography
-#update method using a thread. We'll want to lock the user out using a different method until
-#it is done, because we can't let them edit anything while ADS is fetching.
+# it feels 'wrong' but I think the best way to manage everything is to simply call the bibliography
+# update method using a thread. We'll want to lock the user out using a different method until
+# it is done, because we can't let them edit anything while ADS is fetching.
 
 import gi
 import json
@@ -40,14 +40,14 @@ right. These names are not ordered in any order, so if b -> c and c -> d, you'll
 rename c to d before b to c, if you're using your editor's find and replace tool.
 """
 import platform
-#Todo:
-#maybe remove deleted libraries from sidebar? That's more of a management.py problem 
+# Todo:
+# maybe remove deleted libraries from sidebar? That's more of a management.py problem 
 
 DOI_PROVIDER = "https://doi-org.proxy.library.cornell.edu/"
-#If you're on a University network, the following line should work, depending on how your
-#university's library is set up:
-#DOI_PROVIDER = "https://doi.org/"
-#Alternatively you can set the program to prefer the arXiv for downloading pdfs:
+# If you're on a University network, the following line should work, depending on how your
+# university's library is set up:
+# DOI_PROVIDER = "https://doi.org/"
+# Alternatively you can set the program to prefer the arXiv for downloading pdfs:
 PREFER_ARXIV = False
 ADS_PDF = "http://adsabs.harvard.edu/cgi-bin/nph-data_query?bibcode={}&link_type=ARTICLE"
 
@@ -96,31 +96,34 @@ MENU_XML = """
 """
 
 
-
 class MainWindow(Gtk.ApplicationWindow):
-    def __init__(self,*args,**kwargs):
-        super().__init__(*args,**kwargs)
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
 
         self.sidebarVisible = True
-        (self.COLUMN_AUTHOR,
-        self.COLUMN_JOURNAL,
-        self.COLUMN_MONTH,
-        self.COLUMN_YEAR,
-        self.COLUMN_TITLE,
-        self.COLUMN_VOLUME,
-        self.COLUMN_PAGES,
-        self.COLUMN_BIBCODE,
-        self.COLUMN_ID) = range(9)
+        (
+            self.COLUMN_AUTHOR,
+            self.COLUMN_JOURNAL,
+            self.COLUMN_MONTH,
+            self.COLUMN_YEAR,
+            self.COLUMN_TITLE,
+            self.COLUMN_VOLUME,
+            self.COLUMN_PAGES,
+            self.COLUMN_BIBCODE,
+            self.COLUMN_ID
+        ) = range(9)
 
-        self.COLUMN_TITLES = ["Author",
-        "Journal",
-        "Month",
-        "Year",
-        "Title",
-        "Vol",
-        "Pages",
-        "Bibcode",
-        "ID"]
+        self.COLUMN_TITLES = [
+            "Author",
+            "Journal",
+            "Month",
+            "Year",
+            "Title",
+            "Vol",
+            "Pages",
+            "Bibcode",
+            "ID"]
+
         max_action = Gio.SimpleAction.new_stateful(
             "maximize", None, GLib.Variant.new_boolean(False)
         )
@@ -136,47 +139,57 @@ class MainWindow(Gtk.ApplicationWindow):
         )
 
         try:
-            with open('windowprefs.json','r') as prefsfile:
+            with open('windowprefs.json', 'r') as prefsfile:
                 prefs = json.loads(prefsfile.read())
             self.sidebarVisible = prefs['sb']
             size = prefs['size']
             self.columnwidths = prefs['colwidths']
+            global PREFER_ARXIV
             PREFER_ARXIV = prefs['arxiv']
         except:
-            #print(traceback.format_exc())
-            self.sidebarVisible=True
-            self.columnwidths = [50, 54, 54, 39, 50, 34, 50, 70, -1] # some arbitrary widths 
-            #should be good enough for a starting point at least.
-            size = (800,600)
+            # print(traceback.format_exc())
+            self.sidebarVisible = True
+            self.columnwidths = [50, 54, 54, 39, 50, 34, 50, 70, -1] 
+            # set some arbitrary widths 
+            # should be good enough for a starting point at least.
+            size = (800, 600)
 
         self.library_filter_name = None
         self.bib = management.Bibliography()
-
 
         self.connect('delete-event', self.on_quit)
         self.set_default_size(*size)
         self.syncing = False
         self.add_headerbar()
 
-        #Make top level box that will contain all other widgets
-        self.box = Gtk.Box(spacing=10,orientation=Gtk.Orientation.HORIZONTAL,homogeneous=False)
+        # Make top level box that will contain all other widgets
+        self.box = Gtk.Box(
+            spacing=10,
+            orientation=Gtk.Orientation.HORIZONTAL,
+            homogeneous=False
+        )
         self.add(self.box)
 
         self.make_sidebar()
 
-        self.rbox = Gtk.Box(spacing=10,orientation=Gtk.Orientation.VERTICAL,homogeneous=False)
-        self.box.pack_start(self.rbox,True,True,0)
+        self.rbox = Gtk.Box(
+            spacing=10,
+            orientation=Gtk.Orientation.VERTICAL,
+            homogeneous=False
+        )
+        self.box.pack_start(self.rbox, True, True, 0)
         self.create_list_model()
         self.make_treeview()
         self.make_infobox()
 
         if self.bib.firstRun:
-            #Done I think: check if bib.firstRun and popup with a welcome screen
+            # Done I think: check if bib.firstRun and popup with a welcome screen
             setup.AssistantApp(self.setupDone)
         else:
             self.setupDone()
         self.populate_sidebar()
         self.setSidebarStuff(self.sidebarbtn)
+
     def on_change_label_state(self, action, value):
         action.set_state(value)
         self.label.set_text(value.get_string())
@@ -189,8 +202,18 @@ class MainWindow(Gtk.ApplicationWindow):
             self.unmaximize()
 
     def create_list_model(self):
-        self.listStore = Gtk.ListStore(str,str,str,GObject.TYPE_INT,str,GObject.TYPE_INT,str,str,str)
-        #Done I think : copy data from bib database to list store
+        self.listStore = Gtk.ListStore(
+            str,
+            str,
+            str,
+            GObject.TYPE_INT,
+            str,
+            GObject.TYPE_INT,
+            str,
+            str,
+            str
+        )
+        # Done I think : copy data from bib database to list store
         for paperID in self.bib.bibDatabase:
             paper = self.bib.bibDatabase[paperID]
             try:
@@ -200,38 +223,40 @@ class MainWindow(Gtk.ApplicationWindow):
         self.library_filter = self.listStore.filter_new()
         self.library_filter.set_visible_func(self.library_filter_func)
         self.sorted_and_filtered = Gtk.TreeModelSort(model=self.library_filter)
-        #I need a better filter solution than this. I have to pass the filter into the 
-        #treeview, so it's hard to layer filters. 
+        # I need a better filter solution than this. I have to pass the filter into the 
+        # treeview, so it's hard to layer filters. 
 
-    def treeview_copy(self,widget,ev,data=None):
+    def treeview_copy(self, widget, ev, data=None):
         if Gdk.ModifierType.CONTROL_MASK & ev.state != 0 and ev.hardware_keycode==54 and ev.keyval == 99:
-            #User pressed ctrl-c
-            c=Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+            # User pressed ctrl-c
+            c = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
             text = ""
-            tm,tp=widget.get_selection().get_selected_rows()
+            tm, tp = widget.get_selection().get_selected_rows()
             for t in tp:
                 text = text + self.sorted_and_filtered[t.get_indices()[0]][8] + ','
-            c.set_text(text.strip(','),-1)
+            c.set_text(text.strip(','), -1)
             print("copied {}".format(text))
         elif Gdk.ModifierType.CONTROL_MASK & ev.state != 0 and ev.hardware_keycode==53 and ev.keyval == 120:
-            #user pressed ctrl-x
-            c=Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
+            # user pressed ctrl-x
+            c = Gtk.Clipboard.get(Gdk.SELECTION_CLIPBOARD)
             text = ""
-            tm,tp=widget.get_selection().get_selected_rows()
+            tm, tp = widget.get_selection().get_selected_rows()
             for t in tp:
                 text = text + self.sorted_and_filtered[t.get_indices()[0]][7] + '\n'
-            c.set_text(text.strip(),-1)
+            c.set_text(text.strip(), -1)
             print("copied {}".format(text))
         else:
-            print(ev.state,ev.hardware_keycode,ev.keyval)
+            print(ev.state, ev.hardware_keycode, ev.keyval)
 
-    def treeview_open(self,widget,path,column):
-        pdf_file = self.bib.getDefaultPdf(self.sorted_and_filtered[path.get_indices()][7])
+    def treeview_open(self, widget, path, column):
+        pdf_file = self.bib.getDefaultPdf(
+            self.sorted_and_filtered[path.get_indices()][7]
+        )
         if pdf_file:
-            if platform.system()=="Darwin":
-                subprocess.call(('open',pdf_file))
+            if platform.system() == "Darwin":
+                subprocess.call(('open', pdf_file))
             else:
-                subprocess.call(('xdg-open',pdf_file))
+                subprocess.call(('xdg-open', pdf_file))
 
     """def treeview_rtclick(self,widget,event):
         if event.button == 3:
@@ -246,7 +271,9 @@ class MainWindow(Gtk.ApplicationWindow):
             menu.popup()"""
 
     def search_tree(self, model, column, key, tree_iter, search_data=None):
-        author, title = model.get(tree_iter, 0, 4)  # 0=author and 4=title columns
+        author, title = model.get(tree_iter, 0, 4)  
+        # 0=author and 4=title columns
+
         if key.lower() in (author+title).lower():
             return False
         return True
@@ -255,14 +282,14 @@ class MainWindow(Gtk.ApplicationWindow):
         tvsw = Gtk.ScrolledWindow()
         tvsw.set_policy(Gtk.PolicyType.AUTOMATIC, Gtk.PolicyType.AUTOMATIC)
         self.rbox.pack_start(tvsw, True, True, 0)
-        treeview = Gtk.TreeView(model = self.sorted_and_filtered)
+        treeview = Gtk.TreeView(model=self.sorted_and_filtered)
         treeview.connect("key-press-event", self.treeview_copy)
         treeview.set_activate_on_single_click(False)
         treeview.get_selection().set_mode(Gtk.SelectionMode.MULTIPLE)
         treeview.connect("row-activated", self.treeview_open)
         treeview.set_search_equal_func(self.search_tree)
 
-        #treeview.connect("button-press-event",self.treeview_rtclick)
+        # treeview.connect("button-press-event",self.treeview_rtclick)
         tvsw.add(treeview)
         self.columns = []
         for column_num in range(9):
@@ -286,7 +313,10 @@ class MainWindow(Gtk.ApplicationWindow):
     def make_sidebar(self):
         self.sidebarscrolledwindow = Gtk.ScrolledWindow()
         self.sidebarscrolledwindow.set_size_request(300, 400)
-        self.sidebarscrolledwindow.set_policy(Gtk.PolicyType.NEVER, Gtk.PolicyType.AUTOMATIC)
+        self.sidebarscrolledwindow.set_policy(
+            Gtk.PolicyType.NEVER, 
+            Gtk.PolicyType.AUTOMATIC
+        )
         self.box.pack_start(self.sidebarscrolledwindow, False, False, 0)
 
         self.sidebar = Gtk.ListBox()
@@ -308,9 +338,9 @@ class MainWindow(Gtk.ApplicationWindow):
         hb.set_show_close_button(True)
 
         if Gtk.get_minor_version() < 11:
-            #I guess in old versions of Gtk the headerbar doesn't automatically show the minimize and
-            #maximize buttons. This is a really bad kludge, but since I'm leaving my laptop on Linux 
-            #Mint 17 and not upgrading to 18, it's really necessary. 
+            # I guess in old versions of Gtk the headerbar doesn't automatically show the minimize and
+            # maximize buttons. This is a really bad kludge, but since I'm leaving my laptop on Linux 
+            # Mint 17 and not upgrading to 18, it's really necessary. 
 
             minimize = Gtk.Button()
             minimizeIcon = Gio.ThemedIcon(name='window-minimize-symbolic')
@@ -319,9 +349,9 @@ class MainWindow(Gtk.ApplicationWindow):
             minimize.connect('clicked', lambda x: self.iconify())
             hb.pack_end(minimize)
 
-            #Also this version of GTK is too old to let me know if the window is maximized.
-            #It looks like there is a way, but I can't get it to work. So I'll just leave
-            #out the maximize button on old versions of GTK.
+            # Also this version of GTK is too old to let me know if the window is maximized.
+            # It looks like there is a way, but I can't get it to work. So I'll just leave
+            # out the maximize button on old versions of GTK.
             """
             maximize = Gtk.Button()
             maximizeIcon = Gio.ThemedIcon(name='window-maximize-symbolic')
@@ -361,12 +391,12 @@ class MainWindow(Gtk.ApplicationWindow):
         self.syncButton.set_tooltip_text("Download libraries from ADS.")
         hb.pack_start(self.syncButton)
 
-        #settingsButton = Gtk.Button()
-        #settingsIcon = Gio.ThemedIcon(name='system-run')
-        #settingsImage = Gtk.Image.new_from_gicon(settingsIcon,Gtk.IconSize.BUTTON)
-        #settingsButton.set_image(settingsImage)
-        #settingsButton.connect('clicked',self.settingsMenu)
-        #hb.pack_start(settingsButton)
+        # settingsButton = Gtk.Button()
+        # settingsIcon = Gio.ThemedIcon(name='system-run')
+        # settingsImage = Gtk.Image.new_from_gicon(settingsIcon,Gtk.IconSize.BUTTON)
+        # settingsButton.set_image(settingsImage)
+        # settingsButton.connect('clicked',self.settingsMenu)
+        # hb.pack_start(settingsButton)
 
         downloadButton = Gtk.Button()
         downloadIcon = Gio.ThemedIcon(name='document-save')
@@ -390,20 +420,20 @@ class MainWindow(Gtk.ApplicationWindow):
         try:
             print("requesting {}".format(pdf_url))
             r = requests.get(pdf_url, timeout=20, headers={'User-Agent': 'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.97 Safari/537.36 Vivaldi/1.94.1008.40'})
-            #The user agent gets around people who try to filter out bots, but this 
-            #program is generating no more traffic than I would with a web browser.
-            #(and probably less, given that I download things exactly once with this program
-            #and usually multiple times on phones/browsers.)
-            #It also doesn't affect ad revenue because if it works it goes directly to the PDF anyway
-            #and a web browser would do the same thing.
-            #All of the above is rationalization. This is probably an evil line of code. Sorrynotsorry
+            # The user agent gets around people who try to filter out bots, but this 
+            # program is generating no more traffic than I would with a web browser.
+            # (and probably less, given that I download things exactly once with this program
+            # and usually multiple times on phones/browsers.)
+            # It also doesn't affect ad revenue because if it works it goes directly to the PDF anyway
+            # and a web browser would do the same thing.
+            # All of the above is rationalization. This is probably an evil line of code. Sorrynotsorry
 
             print(r.status_code)
             print(r.headers['Content-type'])
             if 'application/pdf' in r.headers['Content-type'] and r.status_code == 200:
                 print('yay! A PDF file!')
                 return ('pdf', r.content)
-            #elif r.status_code == 403:
+            # elif r.status_code == 403:
             #    return('url',pdf_url)
         except:
             traceback.print_exc()
@@ -421,80 +451,94 @@ class MainWindow(Gtk.ApplicationWindow):
             d.destroy()
             return
         d = Gtk.MessageDialog(
-                              self,0,Gtk.MessageType.INFO,
-                          Gtk.ButtonsType.OK,"Instructions to Download PDFs")
+            self,
+            0,
+            Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK,
+            "Instructions to Download PDFs"
+        )
 
         d.format_secondary_text("This program will launch your default browser to fetch the articles that are missing. Download each PDF and save it in the 'add_pdf' folder in the directory of this program. This program will then move it to the 'library' folder organized by first author.")
         d.run()
         d.destroy()
         for article in self.bib.whatPapersNeedPdfs():
             print('working on article {}'.format(article['title']))
-            a,b = self.download_article(article)
+            a, b = self.download_article(article)
             if a == 'url':
 
                 url = b
                 webbrowser.open_new_tab(url)
-                d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
-                                      Gtk.ButtonsType.NONE,"Opened browser")
+                d = Gtk.MessageDialog(
+                    self,
+                    0,
+                    Gtk.MessageType.INFO,
+                    Gtk.ButtonsType.NONE,
+                    "Opened browser"
+                )
 
                 d.format_secondary_text("Save the file associated with {} to the 'add_pdf' folder.".format(article['title']))
-                d.add_buttons("Add this pdf",1,
-                              "Skip permanently",2,
-                              "Skip once",3,
-                              "Cancel",4)
+                d.add_buttons("Add this pdf", 1,
+                              "Skip permanently", 2,
+                              "Skip once", 3,
+                              "Cancel", 4)
                 r = d.run()
                 d.destroy()
                 if r == 1:
                     self.grabPdf(article)
-                elif r== 4:
+                elif r == 4:
                     break
-                elif r==2:
+                elif r == 2:
                     self.bib.setSkipPdf(article['bibcode'])
 
             elif a == '?':
-                d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
-                                      Gtk.ButtonsType.NONE,"The article {} has no DOI number.".format(article['title']))
+                d = Gtk.MessageDialog(
+                    self,
+                    0,
+                    Gtk.MessageType.INFO,
+                    Gtk.ButtonsType.NONE,
+                    f"The article {article['title']} has no DOI number."
+                )
                 d.format_secondary_text("Either find it manually and put the pdf in add_pdf, or click one of the skip options.")
-                d.add_buttons("Add this pdf",1,
-                              "Skip permanently",2,
-                              "Skip once",3,
-                              "Cancel",4)
-                r=d.run()
+                d.add_buttons("Add this pdf", 1,
+                              "Skip permanently", 2,
+                              "Skip once", 3,
+                              "Cancel", 4)
+                r = d.run()
                 d.destroy()
-                if r==1:
+                if r == 1:
                     self.grabPdf(article)
-                elif r==2:
+                elif r == 2:
                     self.bib.setSkipPdf(article['bibcode'])
-                elif r==4:
+                elif r == 4:
                     break
             elif a == 'pdf':
                 fname = self.getOutFilename(article)
-                with open(fname,'wb') as f:
+                with open(fname, 'wb') as f:
                     f.write(b)
-                self.bib.setPdfs(article['bibcode'],fname)
+                self.bib.setPdfs(article['bibcode'], fname)
 
         self.bib.saveFiles()
         print("wut")
 
-    def getOutFilename(self,article,i=0,extension='.pdf'):
-        assert(extension[0]=='.')
+    def getOutFilename(self, article, i=0, extension='.pdf'):
+        assert (extension[0] == '.')
         path = 'library/' + self.bib.getFirstAuthor(article['author']) + '/'
-        os.makedirs(path,exist_ok=True)
+        os.makedirs(path, exist_ok=True)
         offset = 0
         if 'pdf' in article:
             offset = article['pdf'].split(',')[-1].split('_')[0]
-        return path + "{}_{}{}".format(i+offset,article['bibcode'],extension)
+        return path + "{}_{}{}".format(i+offset, article['bibcode'], extension)
 
-    def grabPdf(self,article):
+    def grabPdf(self, article):
         files = ""
-        (_,_,filenames) = next(os.walk('add_pdf/'))
+        (_, _, filenames) = next(os.walk('add_pdf/'))
         
-        for i,filename in enumerate(filenames):
-            _,extension=os.path.splitext(filename)
-            newfilename = self.getOutFilename(article,i,extension)
-            os.rename('add_pdf/'+filename,newfilename)
+        for i, filename in enumerate(filenames):
+            _, extension = os.path.splitext(filename)
+            newfilename = self.getOutFilename(article, i, extension)
+            os.rename('add_pdf/'+filename, newfilename)
             files = files + ',' + newfilename
-        self.bib.setPdfs(article['bibcode'],files)
+        self.bib.setPdfs(article['bibcode'], files)
 
     def setupDone(self):
         self.show_all()
@@ -506,7 +550,7 @@ class MainWindow(Gtk.ApplicationWindow):
 
         # Get existing rows if any
         for i in range(self.sidebar_num_rows):
-            #Can't find a method for just getting all rows...
+            # Can't find a method for just getting all rows...
             r = sb.get_row_at_index(i)
             if r.data == "No Filters":
                 rows.append("None")
@@ -514,11 +558,11 @@ class MainWindow(Gtk.ApplicationWindow):
                 if self.bib.libInfo[r.library_id]['name'] != r.data:
                     r.update_label(self.bib.libInfo[r.library_id]['name'])
                 rows.append(r.library_id)
-                #print('updated row {}'.format(r.data))
+                # print('updated row {}'.format(r.data))
 
         # Add default row
         if "None" not in rows:
-            sb.add(ListBoxRowWithData("No Filters",'None'))
+            sb.add(ListBoxRowWithData("No Filters", 'None'))
             self.sidebar_num_rows += 1
 
         sortedlibs = sorted(self.bib.libInfo, key=lambda item: self.bib.libInfo[item]['name'].lower())
@@ -526,20 +570,20 @@ class MainWindow(Gtk.ApplicationWindow):
         for library in sortedlibs:
             if library not in rows:
                 libname = self.bib.libInfo[library]['name']
-                r = ListBoxRowWithData(libname,library)
-                #print('added {}'.format(libname))
+                r = ListBoxRowWithData(libname, library)
+                # print('added {}'.format(libname))
                 sb.add(r)
                 self.sidebar_num_rows += 1
-                #print('added row {}'.format(libname))
+                # print('added row {}'.format(libname))
 
         sb.connect('row-activated', self.sb_click)
         sb.show_all() 
     
-    def sb_click(self,widget,row):
+    def sb_click(self, widget, row):
         self.library_filter_name = row.library_id
         self.library_filter.refilter()
 
-    def library_filter_func(self,model,rownum,data):
+    def library_filter_func(self, model, rownum, data):
         if self.library_filter_name is None or self.library_filter_name == "None":
             return True
         else:
@@ -552,73 +596,93 @@ class MainWindow(Gtk.ApplicationWindow):
             return r
 
     def startSync(self,button):
-        #button.set_image(None)
+        # button.set_image(None)
         self.syncing = True
         button.set_image(self.syncSpinner)
         self.syncSpinner.start()
-        #use a thread to call ads 
+        # use a thread to call ads 
         threading.Thread(target=self.adsRefreshThread).start()
-        #TODO: Freeze bib database editing 
+        # TODO: Freeze bib database editing 
         # Depends on: TODO: Add database editing :P
 
-    def finishSync(self,newIds):
+    def finishSync(self, newIds):
         self.syncSpinner.stop()
         self.syncButton.set_image(self.syncImage)
-        #print(dir(self.bib))
+        # print(dir(self.bib))
         if self.bib.exhausted:
             self.syncButton.set_sensitive(False)
         # TODO: Make this display the number of queries remaining in a status bar or something.
-        #Also unfreeze the bib database editing
+        # Also unfreeze the bib database editing
         for paperID in newIds:
             paper = self.bib.bibDatabase[paperID]
             try:
                 self.listStore.append(makeListStoreElement(paper))
             except KeyError:
                 print("KeyError in finishSync(), paper ID: {}. Paper was not added to library.".format(paperID))
-        #Add new libraries to sidebar
+        # Add new libraries to sidebar
         self.populate_sidebar()
-        self.syncing=False
+        self.syncing = False
 
     def adsRefreshThread(self):
         try:
-            newIds,idConflicts = self.bib.adsRefresh()
+            newIds, idConflicts = self.bib.adsRefresh()
             if len(idConflicts) != 0:
-                GLib.idle_add(self.idConflictsPopup,idConflicts)
-            GLib.idle_add(self.finishSync,newIds)
+                GLib.idle_add(self.idConflictsPopup, idConflicts)
+            GLib.idle_add(self.finishSync, newIds)
         except InternalServerError:
-            GLib.idle_add(self.errorMessage,"Internal Server Error",
-                          "It looks like the ADS is having some trouble right now. Maybe try again later?")
-            GLib.idle_add(self.finishSync,[])
+            GLib.idle_add(
+                self.errorMessage, 
+                "Internal Server Error",
+                "It looks like the ADS is having some trouble right now. Maybe try again later?"
+            )
+            GLib.idle_add(self.finishSync, [])
         except requests.exceptions.ConnectionError:
-            GLib.idle_add(self.errorMessage,"Connection Error",
-                          "Either your internet isn't working or the ADS is down. Try checking those things?")
-            GLib.idle_add(self.finishSync,[])
+            GLib.idle_add(
+                self.errorMessage, 
+                "Connection Error",
+                "Either your internet isn't working or the ADS is down. Try checking those things?"
+            )
+            GLib.idle_add(self.finishSync, [])
         except ads.exceptions.APIResponseError as e:
-            GLib.idle_add(self.errorMessage,"ADS Response Error",
-                          "It looks like the ADS is having some trouble right now. Maybe try again later?")
-            GLib.idle_add(self.finishSync,[])
+            GLib.idle_add(
+                self.errorMessage, 
+                "ADS Response Error",
+                "It looks like the ADS is having some trouble right now. Maybe try again later?"
+            )
+            GLib.idle_add(self.finishSync, [])
             print(e)
         except APILimitError:
-            GLib.idle_add(self.errorMessage,"API limit reached",
-                          "You have reached the maximum number of API requests allowed per day. Try again tomorrow.")
-            GLib.idle_add(self.finishSync,[])
+            GLib.idle_add(
+                self.errorMessage, 
+                "API limit reached",
+                "You have reached the maximum number of API requests allowed per day. Try again tomorrow."
+            )
+            GLib.idle_add(self.finishSync, [])
         except UnauthorizedError:
-            GLib.idle_add(self.errorMessage,"ADS Key Missing or Invalid",
-                          "Make sure to follow the instructions for correctly adding an ADS API key from the ADS python library!")
-            GLib.idle_add(self.finishSync,[])            
+            GLib.idle_add(
+                self.errorMessage, 
+                "ADS Key Missing or Invalid",
+                "Make sure to add an ADS API key using the ADS python library!"
+            )
+            GLib.idle_add(self.finishSync, [])            
         except:
             print("Encountered misc error. Handling \"Gracefully\":")
             traceback.print_exc()
 
-    def errorMessage(self,title,text):
-        d = Gtk.MessageDialog(self,0,Gtk.MessageType.INFO,
-                          Gtk.ButtonsType.OK,title)
+    def errorMessage(self, title, text):
+        d = Gtk.MessageDialog(
+            self, 
+            0, 
+            Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK,
+            title
+        )
 
         d.format_secondary_text(text)
         d.run()
         d.destroy()
 
-    def setSidebarStuff(self,button):
+    def setSidebarStuff(self, button):
         if self.sidebarVisible:
             self.sidebar.show()
             self.sidebarscrolledwindow.show()
@@ -632,7 +696,7 @@ class MainWindow(Gtk.ApplicationWindow):
         if self.sidebarVisible:
             self.sidebarVisible = False
         else:
-            self.sidebarVisible=True
+            self.sidebarVisible = True
 
         self.setSidebarStuff(button)
 
@@ -640,17 +704,22 @@ class MainWindow(Gtk.ApplicationWindow):
         print('exiting...')
         size = self.get_size()
         columnwidths = [col.get_fixed_width() for col in self.columns]
-        with open('windowprefs.json','w') as prefsfile:
+        with open('windowprefs.json', 'w') as prefsfile:
             prefsfile.write(json.dumps({'size': size,
                                         'sb': self.sidebarVisible,
                                         'colwidths': columnwidths,
                                         'arxiv': PREFER_ARXIV}))
-        #Gtk.main_quit()
+        # Gtk.main_quit()
 
     def idConflictsPopup(self, conflicts):
-        #make a popup that describes the old and new ID codes.
-        d = Gtk.MessageDialog(self, 0, Gtk.MessageType.INFO,
-                              Gtk.ButtonsType.OK, "Warning: ID codes have changed")
+        # make a popup that describes the old and new ID codes.
+        d = Gtk.MessageDialog(
+            self, 
+            0, 
+            Gtk.MessageType.INFO,
+            Gtk.ButtonsType.OK, 
+            "Warning: ID codes have changed"
+        )
 
         d.format_secondary_text("Check the file ChangedCodes.txt in this program's directory for more information and a detailed list of changes. If you have not written any .tex files using the master bib file provided by this program, you can ignore this message.")
         d.run()
@@ -675,12 +744,12 @@ class ListBoxRowWithData(Gtk.ListBoxRow):
         
 
 def makeListStoreElement(paper):
-    author = authorHandler(paper['author'])  #every paper should have an author...
-    #Done: Make author list pretty
-    title = paper['title'].replace('\n', ' ')  #and title
+    author = authorHandler(paper['author'])  # every paper should have an author...
+    # Done: Make author list pretty
+    title = paper['title'].replace('\n', ' ')  # and title
     year = int(paper['year'])  # and year...
-    bibcode = paper['bibcode']  #every paper DOES have a bibcode
-    ID = paper['ID']  #and ID
+    bibcode = paper['bibcode']  # every paper DOES have a bibcode
+    ID = paper['ID']  # and ID
     try:
         if paper['journal'][0] == '\\':
             journal = paper['journal'][1:].upper()
@@ -719,7 +788,8 @@ def makeListStoreElement(paper):
 
 
 def authorHandler(authors):
-    return LatexNodes2Text().latex_to_text(authors).replace('\n',' ')
+    return LatexNodes2Text().latex_to_text(authors).replace('\n', ' ')
+
 
 class AstroRefApp(Gtk.Application):
     def __init__(self, *args, **kwargs):
@@ -784,18 +854,14 @@ class AstroRefApp(Gtk.Application):
         self.quit()
 
 
-
 if __name__ == '__main__':
-    #workaround:
-    #if Gtk.get_minor_version() == 10 and Gtk.get_micro_version <= 1:
-    #The if statement probably takes more time than starting a thread that does nothing.
+    # workaround:
+    # if Gtk.get_minor_version() == 10 and Gtk.get_micro_version <= 1:
+    # The if statement probably takes more time than starting a thread that 
+    # does nothing.
     # threading.Thread(target=lambda:None).start()
-
-    # GObject.threads_init()
-    # #This ^ will emit a deprecation warning running on Mint 18 but is necessary for mint 17
 
     # ui = MainWindow()
     # Gtk.main()
     app = AstroRefApp()
     app.run(sys.argv)
-
