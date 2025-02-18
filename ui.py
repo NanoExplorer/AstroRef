@@ -49,8 +49,8 @@ DOI_PROVIDER = "https://doi-org.proxy.library.cornell.edu/"
 # DOI_PROVIDER = "https://doi.org/"
 # Alternatively you can set the program to prefer the arXiv for downloading pdfs:
 PREFER_ARXIV = False
-ADS_PDF = "http://adsabs.harvard.edu/cgi-bin/nph-data_query?bibcode={}&link_type=ARTICLE"
-
+#ADS_PDF = "http://adsabs.harvard.edu/cgi-bin/nph-data_query?bibcode={}&link_type=ARTICLE"
+ADS_PDF = "https://ui.adsabs.harvard.edu/link_gateway/{}/PUB_PDF"
 
 MENU_XML = """
 <?xml version="1.0" encoding="UTF-8"?>
@@ -496,7 +496,7 @@ class MainWindow(Gtk.ApplicationWindow):
                     0,
                     Gtk.MessageType.INFO,
                     Gtk.ButtonsType.NONE,
-                    f"The article {article['title']} has no DOI number."
+                    f"The article {article['title']} by {article['author']} {article['year']} has no DOI number."
                 )
                 d.format_secondary_text("Either find it manually and put the pdf in add_pdf, or click one of the skip options.")
                 d.add_buttons("Add this pdf", 1,

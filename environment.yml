@@ -1,0 +1,10 @@
+name: astroref-gtk
+channels:
+  - conda-forge
+dependencies:
+  - ads
+  - bibtexparser
+  - pygobject
+  - pylatexenc
+  - gtk3
+  - librsvg
