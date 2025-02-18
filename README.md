@@ -8,7 +8,7 @@ This program will also manage a BibTex compatible .bib file for ease of use with
 
 ## Installation
 
-AstroRef is written in Python 3. Its dependencies are as follows:
+AstroRef is written in Python 3. Its dependencies are as follows, but installing via the provided yml file is recommended (see below):
 * ads 
 * bibtexparser (v1.4.1 tested)
 * gi / PyGObject (This may be included with your distro, I know Ubuntu has it)
@@ -17,13 +17,11 @@ AstroRef is written in Python 3. Its dependencies are as follows:
 
 Make sure to set up the python ads library by making the file `~/.ads/dev_key` and pasting your ADS api key in there.
 
-I recommend installing in a new Conda environment with the following:
+I recommend installing in a new Conda environment using the provided yml file. 
 ```
-conda create -n referencemanager
-conda activate referencemanager
-conda install -c conda-forge pygobject requests bibtexparser pylatexenc ads gtk3 librsvg
+conda env create -f environment.yml
 ```
-You will, however, need to remember to activate this env when launching the program. 
+This will create an environment called astroref-gtk. Remember to activate this env when launching the program. 
 
 AstroRef has been tested on Linux and Mac, though since all its dependencies are cross-platform it should also work on Windows, but this has not been tested.
 
